@@ -1,12 +1,11 @@
 node_modules/
 .git/
 .edge-automation/
+.chrome-automation/
 .netlify/
 scripts/
 *.bat
 *.ps1
-package.json
-package-lock.json
 deploy-*.ps1
 godaddy-*.ps1
 start-live.bat

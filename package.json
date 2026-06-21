@@ -2,16 +2,14 @@
   "name": "wegrow",
   "description": "WeGrow by LeafLock — weed farm browser game",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "sharp": "^0.35.2"
+    "express": "^4.21.2"
   }
 }

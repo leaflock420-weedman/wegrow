@@ -1,12 +1,13 @@
-# WeGrow by LeafLock — static site for wegrow.leaflock.com.au
+# WeGrow by LeafLock — Node static server (wegrow.leaflock.com.au)
 services:
   - type: web
     name: wegrow
-    runtime: static
+    runtime: node
     plan: free
     repo: https://github.com/leaflock420-weedman/wegrow
     branch: main
-    buildCommand: "echo build complete"
-    staticPublishPath: .
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
     domains:
       - wegrow.leaflock.com.au
