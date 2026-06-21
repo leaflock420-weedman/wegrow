@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0f0a">
+    <meta name="description" content="WeGrow by LeafLock — grow, sell, and expand your weed farm">
+    <title>WeGrow by LeafLock</title>
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+        
+        body {
+            font-family: 'Inter', system_ui, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none;
+        }
+        
+        .font-display {
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-weight: 600;
+        }
+
+        .game-bg {
+            background: linear-gradient(145deg, #0a0f0a 0%, #111511 100%);
+        }
+
+        .panel {
+            background: #111511;
+            border: 1px solid #1f2a1f;
+        }
+
+        .pot-card {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            min-height: 138px;
+            user-select: none;
+        }
+
+        .pot-card:active {
+            transform: scale(0.97);
+        }
+
+        .pot-card.empty:active {
+            background-color: #1a211a;
+        }
+
+        .section {
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bottom-nav {
+            background: #111511;
+            border-top: 1px solid #1f2a1f;
+            box-shadow: 0 -4px 12px rgb(0 0 0 / 0.3);
+        }
+
+        .nav-item {
+            transition: color 0.1s ease;
+            padding: 6px 0;
+        }
+
+        .nav-item.active {
+            color: #4ade80;
+        }
+
+        .nav-item.active i {
+            color: #4ade80;
+        }
+
+        .plant-stage {
+            font-size: 2.05rem;
+            line-height: 1;
+            filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.25));
+        }
+
+        .threat-bar {
+            transition: width 0.25s ease;
+        }
+
+        .fab {
+            box-shadow: 0 8px 20px -4px rgb(16 185 129 / 0.4), 0 4px 8px -2px rgb(0 0 0 / 0.3);
+            transition: transform 0.1s ease;
+        }
+
+        .fab:active {
+            transform: scale(0.92);
+        }
+
+        .game-tab {
+            transition: all 0.1s ease;
+        }
+
+        .toast {
+            animation: toastPop 0.2s ease forwards;
+        }
+
+        .safe-area {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .touch-target {
+            min-height: 48px;
+            min-width: 48px;
+        }
+
+        .brand-logo {
+            height: 2rem;
+            width: auto;
+            max-width: 9.5rem;
+            object-fit: contain;
+            object-position: left center;
+        }
+
+        .nav-pulse {
+            animation: navPulse 1.4s ease infinite;
+        }
+
+        @keyframes navPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgb(168 85 247 / 0.5); }
+            50% { box-shadow: 0 0 0 6px rgb(168 85 247 / 0); }
+        }
+
+        .event-banner {
+            animation: fadeIn 0.25s ease;
+        }
+
+        .strain-chip.active {
+            border-color: #4ade80;
+            background: #052e16;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200 game-bg min-h-screen pb-20 select-none">
+
+    <!-- Mobile Header -->
+    <header class="sticky top-0 z-50 bg-zinc-950/95 backdrop-blur-xl border-b border-zinc-800" style="padding-top: env(safe-area-inset-top)">
+        <div class="px-4 py-3">
+            <div class="flex items-center justify-between">
+                <!-- Brand -->
+                <div class="flex items-center gap-x-2.5 min-w-0">
+                    <img src="logo.png" alt="LeafLock" class="brand-logo">
+                    <div>
+                        <div class="font-display text-[20px] tracking-tighter leading-none">WEGROW</div>
+                        <div class="text-[9px] text-emerald-500/70 -mt-0.5 tracking-[1px]">BY LEAFLOCK</div>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="flex items-center gap-x-2">
+                    <!-- Money -->
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-[5px] flex items-center gap-x-1.5">
+                        <i class="fa-solid fa-dollar-sign text-emerald-400 text-sm"></i>
+                        <span id="money-display" class="font-display text-[19px] font-semibold tabular-nums text-emerald-400">280</span>
+                    </div>
+                    
+                    <!-- Inventory -->
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-[5px] flex items-center gap-x-1.5">
+                        <i class="fa-solid fa-box text-amber-400 text-sm"></i>
+                        <span id="inventory-display" class="font-display text-[17px] font-semibold tabular-nums text-amber-400">0g</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Street Event Banner -->
+    <div id="event-banner" class="hidden px-4 pt-2 event-banner"></div>
+
+    <!-- Active + Threat Bar -->
+    <div class="px-4 pt-2.5 pb-1">
+        <div class="flex items-center justify-between mb-1.5">
+            <!-- Active Status -->
+            <div id="active-status" class="flex items-center gap-x-2 px-3 py-1 bg-emerald-950 border border-emerald-900 rounded-3xl">
+                <div class="flex items-center gap-x-1.5">
+                    <i class="fa-solid fa-bolt text-emerald-400 text-xs"></i>
+                    <span class="font-medium text-emerald-400 text-xs tracking-wide">ACTIVE</span>
+                </div>
+                <div id="active-mult" class="px-2 py-px text-[10px] font-mono bg-emerald-900 text-emerald-300 rounded-2xl">6.0×</div>
+            </div>
+
+            <!-- Session -->
+            <div class="flex items-center gap-x-3 text-xs">
+                <div class="font-mono text-emerald-400 tabular-nums" id="session-time">00:00</div>
+                <button onclick="showHelp()" class="text-emerald-400 px-1">
+                    <i class="fa-solid fa-question-circle text-base"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Threat -->
+        <div>
+            <div class="flex justify-between items-center mb-1 px-0.5">
+                <div class="flex items-center gap-x-1.5">
+                    <i class="fa-solid fa-shield-halved text-red-400 text-sm"></i>
+                    <span class="text-xs font-bold text-red-400 tracking-wider">HEAT</span>
+                </div>
+                <div class="flex items-center gap-x-2">
+                    <span id="threat-value" class="font-mono text-lg font-semibold text-red-400 tabular-nums">14</span>
+                    <span id="door-level-badge" class="text-[10px] px-2 py-px bg-emerald-950 text-emerald-400 rounded-2xl font-medium">LVL 1</span>
+                </div>
+            </div>
+            <div class="h-2.5 bg-zinc-900 border border-zinc-800 rounded-full overflow-hidden">
+                <div id="threat-bar" class="threat-bar h-full bg-gradient-to-r from-red-500 via-orange-500 to-red-600 transition-all" style="width: 14%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="px-4 pb-5">
+        
+        <!-- GROW SECTION -->
+        <div id="section-grow" class="section">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <div class="flex items-center gap-x-2">
+                    <i class="fa-solid fa-seedling text-emerald-400 text-lg"></i>
+                    <span class="font-display text-[19px] tracking-tight">GROW ROOMS</span>
+                </div>
+                
+                <!-- Room Switcher -->
+                <div class="flex bg-zinc-900 border border-zinc-800 rounded-3xl p-0.5 text-xs font-medium">
+                    <button onclick="switchRoom(1)" id="room-tab-1"
+                            class="game-tab active px-3.5 py-1 rounded-3xl flex items-center gap-x-1 bg-emerald-700 text-white">
+                        <span>R1</span>
+                        <span id="room1-count" class="text-[9px] px-1.5 py-px bg-white/20 text-white rounded">2/6</span>
+                    </button>
+                    <button onclick="switchRoom(2)" id="room-tab-2"
+                            class="game-tab px-3.5 py-1 rounded-3xl flex items-center gap-x-1 text-zinc-400">
+                        <span>R2</span>
+                    </button>
+                    <button onclick="switchRoom(3)" id="room-tab-3"
+                            class="game-tab px-3.5 py-1 rounded-3xl flex items-center gap-x-1 text-zinc-400">
+                        <span>R3</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pots Grid -->
+            <div id="pots-container" class="grid grid-cols-2 gap-3">
+                <!-- JS populated -->
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <button onclick="waterAllPlants()" 
+                        class="flex items-center justify-center gap-x-2 py-3.5 bg-sky-900 active:bg-sky-800 text-sky-300 text-sm font-semibold rounded-3xl">
+                    <i class="fa-solid fa-tint"></i>
+                    <span>WATER ALL</span>
+                </button>
+                <button onclick="harvestAllReady()" 
+                        class="flex items-center justify-center gap-x-2 py-3.5 bg-emerald-900 active:bg-emerald-800 text-emerald-300 text-sm font-semibold rounded-3xl">
+                    <i class="fa-solid fa-scissors"></i>
+                    <span>HARVEST READY</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SECURITY SECTION -->
+        <div id="section-security" class="section hidden">
+            <div class="panel rounded-3xl p-4 mb-4">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex items-center gap-x-2">
+                        <i class="fa-solid fa-user-secret text-red-400"></i>
+                        <span class="font-display text-xl tracking-tight">SECURITY</span>
+                    </div>
+                    <div id="security-status" class="px-3 py-1 text-xs bg-emerald-950 text-emerald-400 rounded-2xl font-medium">STABLE</div>
+                </div>
+                
+                <p class="text-xs text-zinc-400 mb-4">Check the door often or rivals will raid your operation.</p>
+                
+                <button onclick="checkDoor()" 
+                        class="w-full py-[15px] bg-zinc-900 active:bg-zinc-800 border border-zinc-700 rounded-3xl font-semibold flex items-center justify-center gap-x-3 text-sm">
+                    <i class="fa-solid fa-door-open text-xl"></i>
+                    <span>CHECK / SECURE FRONT DOOR</span>
+                </button>
+                
+                <div class="flex justify-between text-xs mt-4 px-1">
+                    <div>
+                        <div class="text-zinc-400">Last Check</div>
+                        <div id="last-check-time" class="font-mono text-emerald-400">just now</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-zinc-400">Threat Gain</div>
+                        <div id="threat-rate" class="font-mono text-red-400">+1.3/s</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel rounded-3xl p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="font-semibold">Upgrade Front Door</div>
+                        <div class="text-xs text-zinc-400">Lower threat • Better prices</div>
+                    </div>
+                    <button onclick="upgradeDoor()" class="px-5 py-2 bg-emerald-600 active:bg-emerald-500 text-white text-sm font-bold rounded-3xl">UPGRADE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SELL SECTION -->
+        <div id="section-sell" class="section hidden">
+            <div class="panel rounded-3xl p-5">
+                <div class="flex items-center gap-x-2 mb-4">
+                    <i class="fa-solid fa-handshake text-amber-400"></i>
+                    <span class="font-display text-xl tracking-tight">FRONT DOOR SALES</span>
+                </div>
+                
+                <div class="flex justify-between items-end mb-5">
+                    <div>
+                        <div class="text-xs text-zinc-400">PRICE PER GRAM</div>
+                        <div class="flex items-baseline">
+                            <span id="sell-price" class="font-display text-5xl font-semibold text-amber-400 tabular-nums">15.2</span>
+                            <span class="text-amber-400/70 text-xl ml-1">/g</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-emerald-400">Security Bonus</div>
+                        <div id="price-bonus" class="text-emerald-400 font-semibold">+3.2/g</div>
+                    </div>
+                </div>
+                
+                <button onclick="sellWeed('all')" 
+                        class="w-full py-4 mb-3 bg-amber-600 active:bg-amber-500 text-white font-bold rounded-3xl flex items-center justify-center gap-x-2 text-base">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                    <span>SELL ALL WEED</span>
+                </button>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="sellWeed(30)" class="py-3 bg-zinc-900 active:bg-zinc-800 border border-zinc-700 rounded-3xl text-sm font-medium">Sell 30g</button>
+                    <button onclick="sellWeed(60)" class="py-3 bg-zinc-900 active:bg-zinc-800 border border-zinc-700 rounded-3xl text-sm font-medium">Sell 60g</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SHOP SECTION -->
+        <div id="section-shop" class="section hidden">
+            <div class="space-y-3">
+                <div onclick="buyNutrients()" class="panel active:border-emerald-700 border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
+                    <i class="fa-solid fa-flask text-emerald-400 text-3xl w-9"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold">Nutrient Pack ×10</div>
+                        <div class="text-xs text-zinc-400">Instant growth + yield boost</div>
+                    </div>
+                    <div class="font-display text-emerald-400 text-xl">$180</div>
+                </div>
+                
+                <div onclick="expandCurrentRoom()" class="panel active:border-emerald-700 border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
+                    <i class="fa-solid fa-expand text-emerald-400 text-3xl w-9"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold">Expand Room (+2 Pots)</div>
+                        <div class="text-xs text-zinc-400" id="expand-cost-text">More growing space</div>
+                    </div>
+                    <div class="font-display text-emerald-400 text-xl" id="expand-cost">$650</div>
+                </div>
+                
+                <div onclick="unlockNewRoom()" class="panel active:border-emerald-700 border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
+                    <i class="fa-solid fa-plus-square text-violet-400 text-3xl w-9"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold">Unlock New Room</div>
+                        <div class="text-xs text-zinc-400">Room 2 • 4 starting pots</div>
+                    </div>
+                    <div class="font-display text-emerald-400 text-xl">$4,500</div>
+                </div>
+                
+                <div onclick="buyWaterUpgrade()" class="panel active:border-emerald-700 border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
+                    <i class="fa-solid fa-tint text-sky-400 text-3xl w-9"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold">Auto-Water System</div>
+                        <div class="text-xs text-zinc-400">Permanent upgrade</div>
+                    </div>
+                    <div class="font-display text-emerald-400 text-xl">$1,250</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STREET OPS (unlocks after ~15 min) -->
+        <div id="section-ops" class="section hidden">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <div class="flex items-center gap-x-2">
+                    <i class="fa-solid fa-bolt text-violet-400 text-lg"></i>
+                    <span class="font-display text-[19px] tracking-tight">STREET OPS</span>
+                </div>
+                <div class="text-[10px] px-2 py-0.5 bg-violet-950 text-violet-300 rounded-2xl font-mono">
+                    REP <span id="ops-rep">0</span>
+                </div>
+            </div>
+
+            <div class="panel rounded-3xl p-4 mb-3">
+                <div class="text-xs text-zinc-400 mb-2">PREMIUM STRAINS — pick before planting</div>
+                <div id="strain-picker" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <div class="text-xs text-zinc-500 px-1 mb-2">ACTIVE CONTRACTS</div>
+            <div id="contracts-container" class="space-y-3 mb-3"></div>
+
+            <button onclick="refreshContracts(true)"
+                    class="w-full py-3 bg-violet-900 active:bg-violet-800 text-violet-200 text-sm font-semibold rounded-3xl">
+                <i class="fa-solid fa-rotate mr-1"></i> REFRESH CONTRACTS
+            </button>
+        </div>
+        
+    </div>
+
+    <!-- Floating Action Button -->
+    <button onclick="quickPlant()" 
+            class="fab fixed bottom-[84px] right-5 w-14 h-14 bg-emerald-600 active:bg-emerald-500 rounded-3xl flex items-center justify-center z-40 shadow-xl">
+        <i class="fa-solid fa-plus text-white text-3xl"></i>
+    </button>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bottom-nav safe-area" style="padding-bottom: env(safe-area-inset-bottom)">
+        <div class="flex justify-around items-center h-[62px] px-1 text-xs">
+            <button onclick="showSection('grow')" id="nav-grow"
+                    class="nav-item active flex flex-col items-center justify-center flex-1 text-emerald-400">
+                <i class="fa-solid fa-seedling text-[21px] mb-px"></i>
+                <span class="font-medium text-[10px]">Grow</span>
+            </button>
+            <button onclick="showSection('security')" id="nav-security"
+                    class="nav-item flex flex-col items-center justify-center flex-1 text-zinc-400">
+                <i class="fa-solid fa-shield-halved text-[21px] mb-px"></i>
+                <span class="font-medium text-[10px]">Security</span>
+            </button>
+            <button onclick="showSection('sell')" id="nav-sell"
+                    class="nav-item flex flex-col items-center justify-center flex-1 text-zinc-400">
+                <i class="fa-solid fa-handshake text-[21px] mb-px"></i>
+                <span class="font-medium text-[10px]">Sell</span>
+            </button>
+            <button onclick="showSection('ops')" id="nav-ops"
+                    class="nav-item hidden flex flex-col items-center justify-center flex-1 text-zinc-400">
+                <i class="fa-solid fa-bolt text-[21px] mb-px"></i>
+                <span class="font-medium text-[10px]">Ops</span>
+            </button>
+            <button onclick="showSection('shop')" id="nav-shop"
+                    class="nav-item flex flex-col items-center justify-center flex-1 text-zinc-400">
+                <i class="fa-solid fa-store text-[21px] mb-px"></i>
+                <span class="font-medium text-[10px]">Upgrades</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-[78px] left-1/2 -translate-x-1/2 z-[60] flex flex-col gap-y-2 items-center w-full max-w-[92%]"></div>
+
+    <script>
+        // ==================== CONFIG ====================
+        const CONFIG = {
+            BASE_GROWTH_SECONDS: 260,
+            ACTIVE_MULTIPLIER: 6.2,
+            IDLE_MULTIPLIER: 1.0,
+            WATER_MAX: 100,
+            WATER_DEPLETION_RATE: 1.75,
+            WATER_DEPLETION_ACTIVE: 2.2,
+            THREAT_BASE_GAIN: 0.82,
+            THREAT_PLANT_MULTIPLIER: 0.16,
+            THREAT_WEED_MULTIPLIER: 0.00085,
+            CHECK_COOLDOWN: 6500,
+            START_MONEY: 280,
+            START_NUTRIENTS: 6,
+            START_POTS_PER_ROOM: 4,
+            MAX_POTS_PER_ROOM: 14,
+            SELL_PRICE_BASE: 13.2,
+            RAID_LOSS_PERCENT: 0.24,
+            OPS_UNLOCK_SECONDS: 900,
+            OPS_UNLOCK_EARNED: 2500,
+            CONTRACT_REFRESH_MS: 240000,
+            EVENT_MIN_INTERVAL: 110000,
+            EVENT_MAX_INTERVAL: 190000,
+        };
+
+        const STRAINS = {
+            classic: { name: 'Classic', emoji: '🌱', yieldMult: 1, growthMult: 1, priceBonus: 0, seedCost: 0 },
+            purple: { name: 'Purple Haze', emoji: '💜', yieldMult: 1.55, growthMult: 0.92, priceBonus: 0, seedCost: 45 },
+            gelato: { name: 'Gelato', emoji: '🍧', yieldMult: 1.2, growthMult: 1, priceBonus: 4.5, seedCost: 60 },
+            og: { name: 'OG Kush', emoji: '🔥', yieldMult: 1.25, growthMult: 1.3, priceBonus: 0, seedCost: 55 },
+        };
+
+        const CONTRACT_POOL = [
+            { id: 'rush_drop', name: 'Rush Drop', icon: 'fa-truck-fast', type: 'deliver', amount: 40, time: 240, reward: 1200, rep: 2 },
+            { id: 'harvest_sprint', name: 'Harvest Sprint', icon: 'fa-scissors', type: 'harvest', amount: 4, time: 300, reward: 950, rep: 2 },
+            { id: 'cool_run', name: 'Cool Run', icon: 'fa-snowflake', type: 'cool', heat: 35, time: 180, reward: 700, rep: 1 },
+            { id: 'big_sale', name: 'Bulk Buyer', icon: 'fa-sack-dollar', type: 'sell', amount: 55, time: 360, premiumMult: 2.6, rep: 3 },
+            { id: 'expand_push', name: 'Scale Up', icon: 'fa-chart-line', type: 'earn', amount: 1800, time: 420, reward: 1400, rep: 2 },
+        ];
+
+        let gameState = {
+            money: CONFIG.START_MONEY,
+            inventoryWeed: 0,
+            nutrients: CONFIG.START_NUTRIENTS,
+            doorLevel: 1,
+            threat: 14,
+            lastCheckTime: Date.now(),
+            checkCooldownUntil: 0,
+            rooms: {
+                1: { unlocked: true, maxPots: CONFIG.START_POTS_PER_ROOM, pots: [] },
+                2: { unlocked: false, maxPots: 4, pots: [] },
+                3: { unlocked: false, maxPots: 4, pots: [] }
+            },
+            upgrades: { autoWater: false },
+            stats: { totalWeedHarvested: 0, totalMoneyEarned: 0, totalSold: 0, raidsSurvived: 0, plantsHarvested: 0 },
+            lastTick: Date.now(),
+            lastActivity: Date.now(),
+            sessionStart: Date.now(),
+            currentRoom: 1,
+            currentSection: 'grow',
+            streetOps: {
+                unlocked: false,
+                reputation: 0,
+                contractsCompleted: 0,
+                activeContracts: [],
+                lastContractRefresh: 0,
+                nextEventAt: 0,
+                activeEvent: null,
+                unlockedStrains: ['classic'],
+                selectedStrain: 'classic',
+                whaleBonusLeft: 0,
+                coolRunAccum: 0,
+                contractHarvests: 0,
+                contractSales: 0,
+            }
+        };
+
+        let gameInterval = null;
+        let sessionInterval = null;
+        let pendingPlantIndex = null;
+
+        // ==================== UTILITIES ====================
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast px-4 py-3 rounded-3xl text-sm shadow-2xl flex items-center gap-x-2 max-w-[94vw] mx-auto ${type === 'success' ? 'bg-emerald-600 text-white' : type === 'danger' ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-200 border border-zinc-700'}`;
+            toast.innerHTML = `<span class="px-1">${msg}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.transition = 'all .18s ease';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 160);
+            }, 2100);
+        }
+
+        function updateHeader() {
+            document.getElementById('money-display').textContent = Math.floor(gameState.money).toLocaleString();
+            document.getElementById('inventory-display').textContent = `${Math.floor(gameState.inventoryWeed)}g`;
+            document.getElementById('door-level-badge').textContent = `LVL ${gameState.doorLevel}`;
+            
+            const threatVal = document.getElementById('threat-value');
+            const threatBar = document.getElementById('threat-bar');
+            threatVal.textContent = Math.floor(gameState.threat);
+            threatBar.style.width = `${Math.min(gameState.threat, 100)}%`;
+            
+            if (gameState.threat > 78) threatBar.style.background = 'linear-gradient(to right, #ef4444, #b91c1c)';
+            else if (gameState.threat > 48) threatBar.style.background = 'linear-gradient(to right, #f59e0b, #b45309)';
+            else threatBar.style.background = 'linear-gradient(to right, #f87171, #ef4444)';
+            
+            const status = document.getElementById('security-status');
+            if (status) {
+                if (gameState.threat > 80) {
+                    status.textContent = 'CRITICAL';
+                    status.className = 'px-3 py-1 text-xs bg-red-950 text-red-400 rounded-2xl font-medium';
+                } else if (gameState.threat > 52) {
+                    status.textContent = 'ELEVATED';
+                    status.className = 'px-3 py-1 text-xs bg-orange-950 text-orange-400 rounded-2xl font-medium';
+                } else {
+                    status.textContent = 'STABLE';
+                    status.className = 'px-3 py-1 text-xs bg-emerald-950 text-emerald-400 rounded-2xl font-medium';
+                }
+            }
+            updateActiveStatus();
+            updateOpsNav();
+        }
+
+        function getSessionSeconds() {
+            return Math.floor((Date.now() - gameState.sessionStart) / 1000);
+        }
+
+        function checkStreetOpsUnlock() {
+            if (gameState.streetOps.unlocked) return;
+            const ready = getSessionSeconds() >= CONFIG.OPS_UNLOCK_SECONDS ||
+                gameState.stats.totalMoneyEarned >= CONFIG.OPS_UNLOCK_EARNED ||
+                gameState.stats.plantsHarvested >= 12;
+            if (!ready) return;
+
+            gameState.streetOps.unlocked = true;
+            gameState.streetOps.lastContractRefresh = 0;
+            gameState.streetOps.nextEventAt = Date.now() + 45000;
+            refreshContracts(false);
+            updateOpsNav();
+            renderStrainPicker();
+            showToast('STREET OPS unlocked — contracts & premium strains!', 'success');
+            setTimeout(() => showSection('ops'), 600);
+        }
+
+        function updateOpsNav() {
+            const nav = document.getElementById('nav-ops');
+            if (!nav) return;
+            if (gameState.streetOps.unlocked) {
+                nav.classList.remove('hidden');
+                nav.classList.add('nav-pulse');
+                setTimeout(() => nav.classList.remove('nav-pulse'), 8000);
+            }
+        }
+
+        function getStrain(id) { return STRAINS[id] || STRAINS.classic; }
+
+        function unlockStrainsFromRep() {
+            const rep = gameState.streetOps.reputation;
+            const s = gameState.streetOps.unlockedStrains;
+            if (rep >= 3 && !s.includes('purple')) { s.push('purple'); showToast('Unlocked Purple Haze strain!', 'success'); }
+            if (rep >= 7 && !s.includes('gelato')) { s.push('gelato'); showToast('Unlocked Gelato strain!', 'success'); }
+            if (rep >= 12 && !s.includes('og')) { s.push('og'); showToast('Unlocked OG Kush strain!', 'success'); }
+            renderStrainPicker();
+        }
+
+        function renderStrainPicker() {
+            const el = document.getElementById('strain-picker');
+            if (!el || !gameState.streetOps.unlocked) return;
+            el.innerHTML = '';
+            gameState.streetOps.unlockedStrains.forEach(id => {
+                const strain = getStrain(id);
+                const active = gameState.streetOps.selectedStrain === id;
+                const btn = document.createElement('button');
+                btn.className = `strain-chip border rounded-2xl px-3 py-2 text-xs font-medium ${active ? 'active border-emerald-500 text-emerald-300' : 'border-zinc-700 text-zinc-400'}`;
+                btn.innerHTML = `${strain.emoji} ${strain.name}${strain.seedCost ? ` · $${strain.seedCost}` : ''}`;
+                btn.onclick = () => {
+                    gameState.streetOps.selectedStrain = id;
+                    renderStrainPicker();
+                    saveGame();
+                };
+                el.appendChild(btn);
+            });
+            const repEl = document.getElementById('ops-rep');
+            if (repEl) repEl.textContent = gameState.streetOps.reputation;
+        }
+
+        function makeContract(template) {
+            const now = Date.now();
+            return {
+                ...template,
+                startedAt: now,
+                expiresAt: now + template.time * 1000,
+                progress: 0,
+                completed: false,
+                coolAccum: 0,
+            };
+        }
+
+        function refreshContracts(manual) {
+            if (!gameState.streetOps.unlocked) return;
+            const now = Date.now();
+            if (!manual && now - gameState.streetOps.lastContractRefresh < CONFIG.CONTRACT_REFRESH_MS) return;
+            if (manual && gameState.money < 120) {
+                showToast('Need $120 to refresh contracts', 'info');
+                return;
+            }
+            if (manual) {
+                gameState.money -= 120;
+                updateHeader();
+            }
+
+            const pool = [...CONTRACT_POOL].sort(() => Math.random() - 0.5);
+            gameState.streetOps.activeContracts = pool.slice(0, 3).map(makeContract);
+            gameState.streetOps.contractHarvests = 0;
+            gameState.streetOps.contractSales = 0;
+            gameState.streetOps.coolRunAccum = 0;
+            gameState.streetOps.lastContractRefresh = now;
+            renderContracts();
+            saveGame();
+            if (manual) showToast('New contracts loaded');
+        }
+
+        function renderContracts() {
+            const el = document.getElementById('contracts-container');
+            if (!el) return;
+            el.innerHTML = '';
+            if (!gameState.streetOps.unlocked) {
+                el.innerHTML = '<div class="panel rounded-3xl p-4 text-sm text-zinc-400">Unlocks after 15 min of play or $2,500 earned.</div>';
+                return;
+            }
+
+            gameState.streetOps.activeContracts.forEach((c, i) => {
+                const left = Math.max(0, Math.ceil((c.expiresAt - Date.now()) / 1000));
+                const m = Math.floor(left / 60);
+                const s = left % 60;
+                const timer = `${m}:${s.toString().padStart(2, '0')}`;
+                let progressText = '';
+                let actionBtn = '';
+
+                if (c.type === 'deliver') {
+                    progressText = `Need ${c.amount}g ready · you have ${Math.floor(gameState.inventoryWeed)}g`;
+                    if (!c.completed && gameState.inventoryWeed >= c.amount) {
+                        actionBtn = `<button onclick="completeContract(${i})" class="mt-2 w-full py-2.5 bg-violet-600 text-white text-xs font-bold rounded-2xl">COMPLETE DROP</button>`;
+                    }
+                } else if (c.type === 'harvest') {
+                    progressText = `${gameState.streetOps.contractHarvests}/${c.amount} plants harvested`;
+                } else if (c.type === 'cool') {
+                    progressText = `${Math.floor(c.coolAccum || 0)}/${c.time}s under ${c.heat} heat`;
+                } else if (c.type === 'sell') {
+                    progressText = `${gameState.streetOps.contractSales}/${c.amount}g sold`;
+                } else if (c.type === 'earn') {
+                    progressText = `$${Math.min(gameState.stats.totalMoneyEarned, c.amount)} / $${c.amount} session earnings`;
+                }
+
+                const card = document.createElement('div');
+                card.className = `panel rounded-3xl p-4 border ${c.completed ? 'border-emerald-800 opacity-60' : 'border-zinc-800'}`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-x-2">
+                            <i class="fa-solid ${c.icon} text-violet-400"></i>
+                            <span class="font-semibold text-sm">${c.name}</span>
+                        </div>
+                        <span class="font-mono text-xs text-amber-400">${timer}</span>
+                    </div>
+                    <div class="text-xs text-zinc-400 mb-1">${progressText}</div>
+                    <div class="text-xs text-emerald-400">Reward: $${c.reward || 'premium rate'} · +${c.rep} rep</div>
+                    ${actionBtn}
+                `;
+                el.appendChild(card);
+            });
+            const repEl = document.getElementById('ops-rep');
+            if (repEl) repEl.textContent = gameState.streetOps.reputation;
+        }
+
+        function completeContract(idx) {
+            const c = gameState.streetOps.activeContracts[idx];
+            if (!c || c.completed || Date.now() > c.expiresAt) return;
+
+            if (c.type === 'deliver') {
+                if (gameState.inventoryWeed < c.amount) {
+                    showToast(`Need ${c.amount}g`, 'info');
+                    return;
+                }
+                gameState.inventoryWeed -= c.amount;
+            }
+
+            c.completed = true;
+            gameState.money += c.reward;
+            gameState.streetOps.reputation += c.rep;
+            gameState.streetOps.contractsCompleted++;
+            gameState.stats.totalMoneyEarned += c.reward;
+            unlockStrainsFromRep();
+            showToast(`Contract complete! +$${c.reward}`, 'success');
+            updateHeader();
+            renderContracts();
+            saveGame();
+        }
+
+        function tickContracts(delta) {
+            if (!gameState.streetOps.unlocked) return;
+            let changed = false;
+
+            gameState.streetOps.activeContracts.forEach(c => {
+                if (c.completed || Date.now() > c.expiresAt) return;
+
+                if (c.type === 'cool') {
+                    if (gameState.threat < c.heat) {
+                        c.coolAccum = (c.coolAccum || 0) + delta;
+                        if (c.coolAccum >= c.time) {
+                            c.completed = true;
+                            gameState.money += c.reward;
+                            gameState.streetOps.reputation += c.rep;
+                            gameState.streetOps.contractsCompleted++;
+                            gameState.stats.totalMoneyEarned += c.reward;
+                            unlockStrainsFromRep();
+                            showToast(`Cool Run complete! +$${c.reward}`, 'success');
+                        }
+                    }
+                    changed = true;
+                } else if (c.type === 'harvest') {
+                    if (gameState.streetOps.contractHarvests >= c.amount) {
+                        c.completed = true;
+                        gameState.money += c.reward;
+                        gameState.streetOps.reputation += c.rep;
+                        gameState.streetOps.contractsCompleted++;
+                        gameState.stats.totalMoneyEarned += c.reward;
+                        unlockStrainsFromRep();
+                        showToast(`Harvest Sprint done! +$${c.reward}`, 'success');
+                    }
+                    changed = true;
+                } else if (c.type === 'sell') {
+                    if (gameState.streetOps.contractSales >= c.amount) {
+                        c.completed = true;
+                        gameState.streetOps.reputation += c.rep;
+                        gameState.streetOps.contractsCompleted++;
+                        unlockStrainsFromRep();
+                        showToast('Bulk Buyer contract fulfilled!', 'success');
+                    }
+                    changed = true;
+                } else if (c.type === 'earn') {
+                    if (gameState.stats.totalMoneyEarned >= c.amount) {
+                        c.completed = true;
+                        gameState.money += c.reward;
+                        gameState.streetOps.reputation += c.rep;
+                        gameState.streetOps.contractsCompleted++;
+                        gameState.stats.totalMoneyEarned += c.reward;
+                        unlockStrainsFromRep();
+                        showToast(`Scale Up bonus! +$${c.reward}`, 'success');
+                    }
+                    changed = true;
+                }
+            });
+
+            if (changed) {
+                updateHeader();
+                if (gameState.currentSection === 'ops') renderContracts();
+            }
+        }
+
+        function spawnStreetEvent() {
+            if (!gameState.streetOps.unlocked || gameState.streetOps.activeEvent) return;
+            const roll = Math.random();
+            let event;
+            if (roll < 0.35) {
+                event = { id: 'whale', name: 'Whale Buyer', desc: 'Next 50g sells at 3× price', expiresAt: Date.now() + 90000, whaleLeft: 50 };
+            } else if (roll < 0.65) {
+                event = { id: 'heat_tip', name: 'Rival Tip-Off', desc: 'Heat spike incoming!', expiresAt: Date.now() + 30000 };
+                gameState.threat = Math.min(100, gameState.threat + 16);
+                updateHeader();
+            } else {
+                event = { id: 'nutrient_drop', name: 'Street Hookup', desc: '+5 free nutrients', expiresAt: Date.now() + 60000 };
+                gameState.nutrients += 5;
+            }
+            gameState.streetOps.activeEvent = event;
+            gameState.streetOps.nextEventAt = Date.now() + CONFIG.EVENT_MIN_INTERVAL + Math.random() * (CONFIG.EVENT_MAX_INTERVAL - CONFIG.EVENT_MIN_INTERVAL);
+            renderEventBanner();
+            showToast(event.name + '!', 'info');
+            saveGame();
+        }
+
+        function renderEventBanner() {
+            const el = document.getElementById('event-banner');
+            if (!el) return;
+            const ev = gameState.streetOps.activeEvent;
+            if (!ev || Date.now() > ev.expiresAt) {
+                el.classList.add('hidden');
+                el.innerHTML = '';
+                gameState.streetOps.activeEvent = null;
+                return;
+            }
+            el.classList.remove('hidden');
+            const left = Math.ceil((ev.expiresAt - Date.now()) / 1000);
+            el.innerHTML = `
+                <div class="panel rounded-2xl px-3 py-2 flex items-center justify-between border border-violet-800">
+                    <div class="text-xs"><span class="text-violet-300 font-semibold">${ev.name}</span> · <span class="text-zinc-400">${ev.desc}</span></div>
+                    <span class="text-[10px] font-mono text-amber-400">${left}s</span>
+                </div>
+            `;
+        }
+
+        function updateActiveStatus() {
+            const now = Date.now();
+            const isActive = (now - gameState.lastActivity) < 40000;
+            const mult = isActive ? CONFIG.ACTIVE_MULTIPLIER : CONFIG.IDLE_MULTIPLIER;
+            
+            const statusEl = document.getElementById('active-status');
+            const multEl = document.getElementById('active-mult');
+            
+            if (isActive) {
+                statusEl.className = 'flex items-center gap-x-2 px-3 py-1 bg-emerald-950 border border-emerald-900 rounded-3xl';
+                multEl.textContent = `${mult.toFixed(1)}×`;
+            } else {
+                statusEl.className = 'flex items-center gap-x-2 px-3 py-1 bg-zinc-900 border border-zinc-700 rounded-3xl';
+                multEl.textContent = `${mult.toFixed(1)}×`;
+            }
+        }
+
+        function updateSessionTime() {
+            const elapsed = getSessionSeconds();
+            const m = Math.floor(elapsed / 60);
+            const s = elapsed % 60;
+            const el = document.getElementById('session-time');
+            if (el) el.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            checkStreetOpsUnlock();
+        }
+
+        function updateThreatRate() {
+            const growing = countGrowingPlants();
+            const rate = CONFIG.THREAT_BASE_GAIN + (growing * CONFIG.THREAT_PLANT_MULTIPLIER) + (gameState.inventoryWeed * CONFIG.THREAT_WEED_MULTIPLIER);
+            const el = document.getElementById('threat-rate');
+            if (el) el.textContent = `+${rate.toFixed(1)}/s`;
+        }
+
+        function countGrowingPlants() {
+            let c = 0;
+            Object.values(gameState.rooms).forEach(r => {
+                if (r.unlocked && r.pots) r.pots.forEach(p => { if (p && p.state === 'growing') c++; });
+            });
+            return c;
+        }
+
+        // ==================== PLANT SYSTEM ====================
+        function createNewPlant(strainId = 'classic') {
+            return {
+                state: 'growing',
+                strain: strainId,
+                growthProgress: 0,
+                waterLevel: CONFIG.WATER_MAX,
+                lastWatered: Date.now(),
+                nutrientApplied: false,
+                plantedAt: Date.now(),
+                yieldMult: 1.0
+            };
+        }
+
+        function calcHarvestYield(pot) {
+            let y = 23 + Math.random() * 8;
+            const strain = getStrain(pot.strain || 'classic');
+            y *= strain.yieldMult;
+            if (pot.nutrientApplied) y *= 1.25;
+            if (pot.yieldMult) y *= pot.yieldMult;
+            if (pot.waterLevel > 55) y *= 1.1;
+            return Math.floor(y);
+        }
+
+        function initRoomPots(roomNum) {
+            const room = gameState.rooms[roomNum];
+            if (!room.pots || room.pots.length === 0) {
+                room.pots = Array(room.maxPots).fill(null);
+            }
+        }
+
+        function getCurrentRoom() { return gameState.rooms[gameState.currentRoom]; }
+
+        function switchRoom(num) {
+            if (!gameState.rooms[num].unlocked) {
+                showToast('Room is locked — unlock in Upgrades tab', 'info');
+                return;
+            }
+            gameState.currentRoom = num;
+            
+            document.querySelectorAll('[id^="room-tab-"]').forEach(t => t.classList.remove('active', 'bg-emerald-700'));
+            const tab = document.getElementById(`room-tab-${num}`);
+            if (tab) tab.classList.add('active', 'bg-emerald-700');
+            
+            renderPots();
+        }
+
+        function renderPots() {
+            const container = document.getElementById('pots-container');
+            container.innerHTML = '';
+            const room = getCurrentRoom();
+            if (!room) return;
+
+            const badge = document.getElementById(`room${gameState.currentRoom}-count`);
+            if (badge) {
+                const used = room.pots.filter(p => p !== null).length;
+                badge.textContent = `${used}/${room.maxPots}`;
+            }
+
+            room.pots.forEach((pot, index) => {
+                const el = document.createElement('div');
+                el.className = `pot-card border border-zinc-700 rounded-3xl p-3 bg-zinc-950 flex flex-col`;
+
+                if (!pot) {
+                    el.classList.add('empty', 'justify-center', 'items-center', 'border-dashed', 'border-zinc-600', 'active:bg-zinc-900');
+                    el.innerHTML = `
+                        <div class="text-center py-1">
+                            <i class="fa-solid fa-plus text-3xl text-zinc-500 mb-1"></i>
+                            <div class="text-xs font-medium text-zinc-400">PLANT SEED</div>
+                        </div>
+                    `;
+                    el.onclick = () => plantSeed(index);
+                } else {
+                    const prog = Math.min(Math.floor(pot.growthProgress), 100);
+                    const water = Math.max(0, Math.floor(pot.waterLevel));
+                    const ready = pot.state === 'ready';
+
+                    const strain = getStrain(pot.strain || 'classic');
+                    let emoji = strain.emoji, label = strain.name.toUpperCase(), color = 'text-emerald-300';
+                    if (ready) { emoji = '🌳'; label = 'READY'; color = 'text-amber-400'; }
+                    else if (prog > 75) { label = 'FLOWERING'; color = 'text-emerald-400'; }
+                    else if (prog > 35) { label = 'VEGETATIVE'; color = 'text-lime-300'; }
+                    else { label = 'SEEDLING'; }
+
+                    const wColor = water > 50 ? 'bg-sky-400' : water > 20 ? 'bg-yellow-400' : 'bg-red-500';
+
+                    el.innerHTML = `
+                        <div class="flex justify-between mb-1">
+                            <div>
+                                <div class="plant-stage">${emoji}</div>
+                                <div class="text-[10px] font-bold ${color}">${label}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-mono text-emerald-400">${prog}%</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-1">
+                            <div class="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                <div class="h-full ${ready ? 'bg-amber-400' : 'bg-emerald-400'}" style="width: ${prog}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between text-[10px] mb-1">
+                            <span class="text-sky-300"><i class="fa-solid fa-tint fa-xs mr-1"></i>${water}%</span>
+                        </div>
+                        
+                        <div class="flex gap-x-2 mt-auto">
+                            ${!ready ? `
+                                <button onclick="event.stopImmediatePropagation(); waterPlant(${index});" 
+                                        class="flex-1 py-[7px] text-xs bg-sky-900 active:bg-sky-700 text-sky-200 rounded-2xl font-medium">WATER</button>
+                                <button onclick="event.stopImmediatePropagation(); applyNutrient(${index});" 
+                                        class="flex-1 py-[7px] text-xs bg-emerald-900 active:bg-emerald-700 text-emerald-200 rounded-2xl font-medium">NUTRI</button>
+                            ` : `
+                                <button onclick="event.stopImmediatePropagation(); harvestPlant(${index});" 
+                                        class="flex-1 py-2 text-xs bg-amber-600 active:bg-amber-500 text-white font-bold rounded-2xl">HARVEST</button>
+                            `}
+                        </div>
+                    `;
+                }
+                container.appendChild(el);
+            });
+            updateRoomBadges();
+        }
+
+        function updateRoomBadges() {
+            [1,2,3].forEach(n => {
+                const b = document.getElementById(`room${n}-count`);
+                if (!b) return;
+                const r = gameState.rooms[n];
+                if (!r.unlocked) {
+                    b.textContent = 'LOCK';
+                    b.className = 'text-[9px] px-1.5 bg-zinc-800 text-zinc-400 rounded';
+                } else {
+                    const used = r.pots.filter(p => p).length;
+                    b.textContent = `${used}/${r.maxPots}`;
+                }
+            });
+        }
+
+        function plantSeed(idx) {
+            const room = getCurrentRoom();
+            if (room.pots[idx]) return;
+            const strainId = gameState.streetOps.unlocked ? gameState.streetOps.selectedStrain : 'classic';
+            const strain = getStrain(strainId);
+            if (strain.seedCost > 0 && gameState.money < strain.seedCost) {
+                showToast(`Need $${strain.seedCost} for ${strain.name}`, 'info');
+                return;
+            }
+            if (strain.seedCost > 0) gameState.money -= strain.seedCost;
+            room.pots[idx] = createNewPlant(strainId);
+            showToast(`${strain.emoji} ${strain.name} planted`);
+            gameState.lastActivity = Date.now();
+            renderPots();
+            updateHeader();
+            saveGame();
+        }
+
+        function waterPlant(idx) {
+            const room = getCurrentRoom();
+            const pot = room.pots[idx];
+            if (!pot || pot.state === 'ready') return;
+            pot.waterLevel = CONFIG.WATER_MAX;
+            pot.lastWatered = Date.now();
+            gameState.lastActivity = Date.now();
+            showToast('Watered');
+            renderPots();
+            saveGame();
+        }
+
+        function applyNutrient(idx) {
+            if (gameState.nutrients < 1) {
+                showToast('No nutrients left', 'info');
+                return;
+            }
+            const room = getCurrentRoom();
+            const pot = room.pots[idx];
+            if (!pot || pot.state === 'ready') return;
+
+            gameState.nutrients--;
+            pot.growthProgress = Math.min(100, pot.growthProgress + 27);
+            pot.yieldMult = (pot.yieldMult || 1) + 0.23;
+            pot.nutrientApplied = true;
+
+            showToast('+27% growth & yield');
+            gameState.lastActivity = Date.now();
+            renderPots();
+            updateHeader();
+            saveGame();
+        }
+
+        function harvestPlant(idx) {
+            const room = getCurrentRoom();
+            const pot = room.pots[idx];
+            if (!pot || pot.state !== 'ready') return;
+
+            const y = calcHarvestYield(pot);
+
+            gameState.inventoryWeed += y;
+            gameState.stats.totalWeedHarvested += y;
+            gameState.stats.plantsHarvested++;
+            if (gameState.streetOps.unlocked) gameState.streetOps.contractHarvests++;
+            room.pots[idx] = null;
+
+            showToast(`+${y}g harvested`, 'success');
+            gameState.lastActivity = Date.now();
+            renderPots();
+            updateHeader();
+            saveGame();
+        }
+
+        function waterAllPlants() {
+            let count = 0;
+            Object.values(gameState.rooms).forEach(room => {
+                if (!room.unlocked || !room.pots) return;
+                room.pots.forEach(p => {
+                    if (p && p.state === 'growing' && p.waterLevel < 82) {
+                        p.waterLevel = CONFIG.WATER_MAX;
+                        p.lastWatered = Date.now();
+                        count++;
+                    }
+                });
+            });
+            if (count > 0) {
+                showToast(`Watered ${count} plants`);
+                gameState.lastActivity = Date.now();
+                renderPots();
+                saveGame();
+            }
+        }
+
+        function harvestAllReady() {
+            let harvested = 0, total = 0;
+            Object.values(gameState.rooms).forEach(room => {
+                if (!room.unlocked || !room.pots) return;
+                room.pots.forEach((pot, i) => {
+                    if (pot && pot.state === 'ready') {
+                        const y = calcHarvestYield(pot);
+                        gameState.inventoryWeed += y;
+                        total += y;
+                        harvested++;
+                        if (gameState.streetOps.unlocked) gameState.streetOps.contractHarvests++;
+                        room.pots[i] = null;
+                    }
+                });
+            });
+            if (harvested > 0) {
+                gameState.stats.totalWeedHarvested += total;
+                gameState.stats.plantsHarvested += harvested;
+                showToast(`Harvested ${harvested} plants (+${total}g)`);
+                gameState.lastActivity = Date.now();
+                renderPots();
+                updateHeader();
+                saveGame();
+            }
+        }
+
+        function quickPlant() {
+            const room = getCurrentRoom();
+            const empty = room.pots.findIndex(p => p === null);
+            if (empty !== -1) {
+                plantSeed(empty);
+            } else {
+                showToast('Room full — expand it!', 'info');
+            }
+        }
+
+        // ==================== GAME LOOP ====================
+        function gameTick() {
+            const now = Date.now();
+            const delta = (now - gameState.lastTick) / 1000;
+            gameState.lastTick = now;
+            if (delta <= 0 || delta > 7) return;
+
+            const isActive = (now - gameState.lastActivity) < 40000;
+            const mult = isActive ? CONFIG.ACTIVE_MULTIPLIER : CONFIG.IDLE_MULTIPLIER;
+
+            // Threat calculation
+            const growing = countGrowingPlants();
+            let gain = CONFIG.THREAT_BASE_GAIN + (growing * CONFIG.THREAT_PLANT_MULTIPLIER) + (gameState.inventoryWeed * CONFIG.THREAT_WEED_MULTIPLIER);
+            gain *= (1 - (gameState.doorLevel - 1) * 0.12);
+            gameState.threat = Math.min(100, Math.max(0, gameState.threat + gain * delta));
+
+            // Plant growth
+            Object.values(gameState.rooms).forEach(room => {
+                if (!room.unlocked || !room.pots) return;
+                room.pots.forEach(pot => {
+                    if (!pot || pot.state !== 'growing') return;
+
+                    const dep = isActive ? CONFIG.WATER_DEPLETION_ACTIVE : CONFIG.WATER_DEPLETION_RATE;
+                    if (!gameState.upgrades.autoWater) {
+                        pot.waterLevel = Math.max(0, pot.waterLevel - dep * delta);
+                    } else {
+                        pot.waterLevel = Math.max(pot.waterLevel, 62);
+                    }
+
+                    if (pot.waterLevel > 13) {
+                        const wF = pot.waterLevel > 32 ? 1 : 0.38;
+                        const nF = pot.nutrientApplied ? 1.16 : 1;
+                        const sF = getStrain(pot.strain || 'classic').growthMult;
+                        const growth = (delta * mult * wF * nF * sF) / (CONFIG.BASE_GROWTH_SECONDS / 100);
+                        pot.growthProgress = Math.min(100, pot.growthProgress + growth);
+
+                        if (pot.growthProgress >= 100) {
+                            pot.state = 'ready';
+                            pot.growthProgress = 100;
+                        }
+                    }
+                });
+            });
+
+            if (gameState.threat >= 100) triggerRaid();
+
+            checkStreetOpsUnlock();
+            tickContracts(delta);
+            renderEventBanner();
+            if (gameState.streetOps.unlocked && !gameState.streetOps.activeEvent && now >= gameState.streetOps.nextEventAt) {
+                spawnStreetEvent();
+            }
+
+            updateHeader();
+            updateThreatRate();
+
+            if (Math.floor(now / 1600) !== Math.floor((now - delta * 1000) / 1600)) {
+                renderPots();
+            }
+            if (gameState.currentSection === 'ops' && Math.floor(now / 2000) !== Math.floor((now - delta * 1000) / 2000)) {
+                renderContracts();
+            }
+            if (Math.floor(now / 26000) > Math.floor((now - delta * 1000) / 26000)) saveGame();
+        }
+
+        function triggerRaid() {
+            const lostW = Math.floor(gameState.inventoryWeed * CONFIG.RAID_LOSS_PERCENT);
+            const lostM = Math.floor(gameState.money * 0.13);
+            gameState.inventoryWeed = Math.max(0, gameState.inventoryWeed - lostW);
+            gameState.money = Math.max(0, gameState.money - lostM);
+            gameState.threat = 40 + Math.random() * 11;
+            gameState.stats.raidsSurvived++;
+
+            showToast(`RAID! Lost ${lostW}g + $${lostM}`, 'danger');
+            setTimeout(() => {
+                alert(`RAID!\nRivals kicked in the door.\nLost: ${lostW}g weed + $${lostM}`);
+            }, 380);
+
+            renderPots();
+            updateHeader();
+            saveGame();
+        }
+
+        // ==================== ACTIONS ====================
+        function checkDoor() {
+            const now = Date.now();
+            if (now < gameState.checkCooldownUntil) {
+                const s = Math.ceil((gameState.checkCooldownUntil - now) / 1000);
+                showToast(`Cooldown: ${s}s`, 'info');
+                return;
+            }
+            const red = 27 + (gameState.doorLevel * 4.5);
+            gameState.threat = Math.max(0, gameState.threat - red);
+            gameState.lastCheckTime = now;
+            gameState.checkCooldownUntil = now + CONFIG.CHECK_COOLDOWN;
+            gameState.lastActivity = now;
+            document.getElementById('last-check-time').textContent = 'just now';
+            showToast(`Door secured (-${red} heat)`);
+            updateHeader();
+            saveGame();
+        }
+
+        function upgradeDoor() {
+            const cost = Math.floor(920 * Math.pow(1.58, gameState.doorLevel - 1));
+            if (gameState.money < cost) { showToast(`Need $${cost}`, 'info'); return; }
+            gameState.money -= cost;
+            gameState.doorLevel++;
+            showToast(`Door upgraded to LVL ${gameState.doorLevel}`);
+            updateHeader();
+            saveGame();
+        }
+
+        function getSellPrice() {
+            let price = CONFIG.SELL_PRICE_BASE + (gameState.doorLevel - 1) * 1.85;
+            const ev = gameState.streetOps.activeEvent;
+            if (ev?.id === 'whale' && ev.whaleLeft > 0) price *= 3;
+            const bulk = gameState.streetOps.activeContracts?.find(c => !c.completed && c.type === 'sell' && Date.now() < c.expiresAt);
+            if (bulk?.premiumMult) price *= bulk.premiumMult;
+            if (gameState.streetOps.unlocked && gameState.streetOps.selectedStrain === 'gelato') price += getStrain('gelato').priceBonus;
+            return price;
+        }
+
+        function sellWeed(amount) {
+            if (gameState.inventoryWeed < 1) { showToast('Nothing to sell', 'info'); return; }
+            const price = getSellPrice();
+            const amt = amount === 'all' ? gameState.inventoryWeed : Math.min(amount, gameState.inventoryWeed);
+            const earned = Math.floor(amt * price);
+
+            gameState.money += earned;
+            gameState.inventoryWeed -= amt;
+            gameState.stats.totalSold += amt;
+            gameState.stats.totalMoneyEarned += earned;
+            gameState.threat = Math.min(100, gameState.threat + (amt / 15));
+            if (gameState.streetOps.unlocked) gameState.streetOps.contractSales += amt;
+            const ev = gameState.streetOps.activeEvent;
+            if (ev?.id === 'whale' && ev.whaleLeft > 0) ev.whaleLeft = Math.max(0, ev.whaleLeft - amt);
+
+            showToast(`Sold ${amt}g for $${earned}`);
+            gameState.lastActivity = Date.now();
+            updateHeader();
+            renderPots();
+            saveGame();
+        }
+
+        // ==================== SHOP ====================
+        function buyNutrients() {
+            if (gameState.money < 180) { showToast('Need $180', 'info'); return; }
+            gameState.money -= 180;
+            gameState.nutrients += 10;
+            showToast('Bought 10 nutrients');
+            updateHeader();
+            saveGame();
+        }
+
+        function expandCurrentRoom() {
+            const room = getCurrentRoom();
+            const cost = Math.floor(640 * Math.pow(1.36, (room.maxPots - 4) / 2));
+            if (gameState.money < cost) { showToast(`Need $${cost}`, 'info'); return; }
+            if (room.maxPots >= CONFIG.MAX_POTS_PER_ROOM) { showToast('Max capacity'); return; }
+
+            gameState.money -= cost;
+            room.maxPots += 2;
+            room.pots.push(null, null);
+            showToast('Room expanded +2 pots');
+            updateHeader();
+            renderPots();
+            saveGame();
+        }
+
+        function unlockNewRoom() {
+            let next = null;
+            for (let i = 2; i <= 3; i++) if (!gameState.rooms[i].unlocked) { next = i; break; }
+            if (!next) { showToast('All rooms unlocked'); return; }
+
+            const cost = next === 2 ? 4500 : 9800;
+            if (gameState.money < cost) { showToast(`Need $${cost}`, 'info'); return; }
+
+            gameState.money -= cost;
+            gameState.rooms[next].unlocked = true;
+            gameState.rooms[next].pots = Array(gameState.rooms[next].maxPots).fill(null);
+            showToast(`Room ${next} unlocked!`);
+            setTimeout(() => switchRoom(next), 280);
+            updateHeader();
+            updateRoomBadges();
+            saveGame();
+        }
+
+        function buyWaterUpgrade() {
+            if (gameState.upgrades.autoWater) { showToast('Already installed'); return; }
+            if (gameState.money < 1250) { showToast('Need $1,250', 'info'); return; }
+            gameState.money -= 1250;
+            gameState.upgrades.autoWater = true;
+            showToast('Auto-Water System installed');
+            updateHeader();
+            saveGame();
+        }
+
+        // ==================== NAVIGATION ====================
+        function showSection(sec) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${sec}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'text-emerald-400'));
+            document.getElementById(`nav-${sec}`).classList.add('active', 'text-emerald-400');
+
+            gameState.currentSection = sec;
+            if (sec === 'grow') setTimeout(renderPots, 40);
+            if (sec === 'ops') { renderStrainPicker(); renderContracts(); }
+        }
+
+        // ==================== SAVE / LOAD ====================
+        function saveGame() {
+            try { localStorage.setItem('wegrow_v1', JSON.stringify(gameState)); } catch(e){}
+        }
+
+        function loadGame() {
+            try {
+                const saved = localStorage.getItem('wegrow_v1') || localStorage.getItem('leaflock_v2') || localStorage.getItem('oneStateMobile_v2');
+                if (saved) {
+                    const p = JSON.parse(saved);
+                    gameState = { ...gameState, ...p };
+                    if (!gameState.streetOps) gameState.streetOps = { unlocked: false, reputation: 0, contractsCompleted: 0, activeContracts: [], lastContractRefresh: 0, nextEventAt: 0, activeEvent: null, unlockedStrains: ['classic'], selectedStrain: 'classic', whaleBonusLeft: 0, coolRunAccum: 0, contractHarvests: 0, contractSales: 0 };
+                    Object.keys(gameState.rooms).forEach(k => {
+                        const r = gameState.rooms[k];
+                        if (r.unlocked && (!r.pots || r.pots.length === 0)) r.pots = Array(r.maxPots || 4).fill(null);
+                    });
+                } else {
+                    initRoomPots(1);
+                }
+            } catch(e) { initRoomPots(1); }
+            if (!gameState.rooms[gameState.currentRoom]?.unlocked) gameState.currentRoom = 1;
+        }
+
+        function resetGame() {
+            if (!confirm('Reset everything?')) return;
+            localStorage.removeItem('wegrow_v1');
+            localStorage.removeItem('leaflock_v2');
+            localStorage.removeItem('oneStateMobile_v2');
+            location.reload();
+        }
+
+        // ==================== INIT ====================
+        function initGame() {
+            loadGame();
+            if (!gameState.rooms[1].pots || gameState.rooms[1].pots.length === 0) initRoomPots(1);
+
+            // Default tab
+            const tab1 = document.getElementById('room-tab-1');
+            if (tab1) tab1.classList.add('active', 'bg-emerald-700');
+
+            document.getElementById('section-grow').classList.remove('hidden');
+            document.getElementById('nav-grow').classList.add('active', 'text-emerald-400');
+
+            renderPots();
+            updateHeader();
+            updateThreatRate();
+            updateRoomBadges();
+
+            // Game loop
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameTick, 920);
+
+            if (sessionInterval) clearInterval(sessionInterval);
+            sessionInterval = setInterval(updateSessionTime, 1000);
+
+            // Activity
+            ['touchstart', 'click', 'keydown'].forEach(e => {
+                document.addEventListener(e, () => { gameState.lastActivity = Date.now(); }, { passive: true });
+            });
+
+            // Demo plants
+            setTimeout(() => {
+                const r1 = gameState.rooms[1];
+                if (r1.pots.filter(p => p).length < 2) {
+                    for (let i = 0; i < 2; i++) {
+                        if (!r1.pots[i]) {
+                            const p = createNewPlant();
+                            p.growthProgress = 24 + (i * 17);
+                            p.waterLevel = 74;
+                            r1.pots[i] = p;
+                        }
+                    }
+                    renderPots();
+                }
+            }, 750);
+
+            setTimeout(() => {
+                if (gameState.stats.plantsHarvested === 0) {
+                    showToast('Tap empty pots to plant. Stay active for fast growth!');
+                }
+            }, 3200);
+
+            if (gameState.streetOps.unlocked) {
+                updateOpsNav();
+                renderStrainPicker();
+                renderContracts();
+            }
+
+            updateHeader();
+            showSection('grow');
+            console.log('%c[WeGrow by LeafLock] Ready', 'color:#4ade80');
+        }
+
+        function showHelp() {
+            const html = `
+                <div onclick="this.remove()" class="fixed inset-0 bg-black/90 z-[70] flex items-end">
+                    <div onclick="event.stopImmediatePropagation()" class="bg-zinc-950 w-full rounded-t-3xl p-5 max-h-[72vh] overflow-auto">
+                        <div class="flex justify-between mb-4">
+                            <div class="font-display text-2xl">How to Play</div>
+                            <button onclick="event.target.closest('.fixed').remove()" class="text-3xl px-2">×</button>
+                        </div>
+                        <div class="space-y-4 text-sm text-zinc-300">
+                            <div><strong class="text-emerald-400">GROW:</strong> Tap pots → Plant → Water → Use nutrients → Harvest when ready.</div>
+                            <div><strong class="text-emerald-400">SPEED:</strong> Keep tapping/playing = <strong>6× faster</strong> growth.</div>
+                            <div><strong class="text-red-400">SECURITY:</strong> Tap "Check Door" regularly. High heat = raid.</div>
+                            <div><strong class="text-amber-400">SELL:</strong> Sell at front door. Higher door level = better price.</div>
+                            <div><strong class="text-emerald-400">EXPAND:</strong> Use money to buy pots and unlock rooms.</div>
+                            <div><strong class="text-violet-400">STREET OPS:</strong> Unlocks after ~15 min — contracts, events &amp; premium strains.</div>
+                            <div class="pt-2 text-xs text-zinc-400 border-t border-zinc-800">WeGrow by LeafLock — grow your empire on mobile &amp; desktop.</div>
+                        </div>
+                        <button onclick="event.target.closest('.fixed').remove()" class="mt-5 w-full py-3.5 bg-emerald-600 active:bg-emerald-500 text-white font-semibold rounded-3xl">LET'S GROW</button>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+
+        window.onload = initGame;
+        window.WEGROW = { addMoney: n => {gameState.money += n; updateHeader()}, forceRaid: () => gameState.threat = 100, unlockOps: () => { gameState.streetOps.unlocked = true; refreshContracts(false); updateOpsNav(); renderStrainPicker(); } };
+    </script>
+</body>
+</html>

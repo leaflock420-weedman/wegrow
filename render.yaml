@@ -1,0 +1,13 @@
+# WeGrow by LeafLock — static site for wegrow.leaflock.com.au
+services:
+  - type: web
+    name: wegrow
+    runtime: static
+    staticPublishPath: .
+    buildCommand: echo "WeGrow static deploy"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    domains:
+      - wegrow.leaflock.com.au
