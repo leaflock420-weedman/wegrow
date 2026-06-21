@@ -7,9 +7,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0f0a">
     <meta name="description" content="WeGrow by LeafLock — grow, sell, and expand your weed farm">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="WeGrow">
     <title>WeGrow by LeafLock</title>
     <link rel="icon" href="logo.png" type="image/png">
-    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="manifest.webmanifest">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -194,7 +197,10 @@
             <!-- Session -->
             <div class="flex items-center gap-x-3 text-xs">
                 <div class="font-mono text-emerald-400 tabular-nums" id="session-time">00:00</div>
-                <button onclick="showHelp()" class="text-emerald-400 px-1">
+                <button id="install-btn" onclick="installApp()" class="hidden text-emerald-400 px-1 touch-target" title="Install app">
+                    <i class="fa-solid fa-download text-base"></i>
+                </button>
+                <button onclick="showHelp()" class="text-emerald-400 px-1 touch-target">
                     <i class="fa-solid fa-question-circle text-base"></i>
                 </button>
             </div>
@@ -1484,7 +1490,10 @@
                             <div><strong class="text-amber-400">SELL:</strong> Sell at front door. Higher door level = better price.</div>
                             <div><strong class="text-emerald-400">EXPAND:</strong> Use money to buy pots and unlock rooms.</div>
                             <div><strong class="text-violet-400">STREET OPS:</strong> Unlocks after ~15 min — contracts, events &amp; premium strains.</div>
-                            <div class="pt-2 text-xs text-zinc-400 border-t border-zinc-800">WeGrow by LeafLock — grow your empire on mobile &amp; desktop.</div>
+                            <div class="pt-2 text-xs text-zinc-400 border-t border-zinc-800">
+                                <strong class="text-emerald-400">INSTALL:</strong> Tap the <i class="fa-solid fa-download"></i> button to save WeGrow to your home screen — works offline after first load.
+                            </div>
+                            <div class="text-xs text-zinc-500">WeGrow by LeafLock — grow your empire on mobile &amp; desktop.</div>
                         </div>
                         <button onclick="event.target.closest('.fixed').remove()" class="mt-5 w-full py-3.5 bg-emerald-600 active:bg-emerald-500 text-white font-semibold rounded-3xl">LET'S GROW</button>
                     </div>
@@ -1492,7 +1501,77 @@
             document.body.insertAdjacentHTML('beforeend', html);
         }
 
-        window.onload = initGame;
+        let deferredInstallPrompt = null;
+
+        function isInstalledPwa() {
+            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        }
+
+        function updateInstallButton() {
+            const btn = document.getElementById('install-btn');
+            if (!btn) return;
+            if (isInstalledPwa()) {
+                btn.classList.add('hidden');
+                return;
+            }
+            if (deferredInstallPrompt || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                btn.classList.remove('hidden');
+            }
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            updateInstallButton();
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredInstallPrompt = null;
+            updateInstallButton();
+            showToast('WeGrow installed — open from your home screen');
+        });
+
+        async function installApp() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                const { outcome } = await deferredInstallPrompt.userChoice;
+                deferredInstallPrompt = null;
+                updateInstallButton();
+                if (outcome === 'accepted') showToast('Installing WeGrow…');
+                return;
+            }
+            showInstallGuide();
+        }
+
+        function showInstallGuide() {
+            const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const android = /Android/i.test(navigator.userAgent);
+            const steps = ios
+                ? '<div class="space-y-2"><div>1. Tap <strong>Share</strong> <i class="fa-solid fa-arrow-up-from-bracket"></i> in Safari</div><div>2. Choose <strong>Add to Home Screen</strong></div><div>3. Tap <strong>Add</strong></div></div>'
+                : android
+                ? '<div class="space-y-2"><div>1. Tap the <strong>menu</strong> (⋮) in Chrome</div><div>2. Choose <strong>Install app</strong> or <strong>Add to Home screen</strong></div></div>'
+                : '<div class="space-y-2"><div>Chrome / Edge: click the <strong>install</strong> icon in the address bar, or use the download button above.</div><div>Your progress saves automatically in the browser.</div></div>';
+
+            const html = `
+                <div onclick="this.remove()" class="fixed inset-0 bg-black/90 z-[70] flex items-end">
+                    <div onclick="event.stopImmediatePropagation()" class="bg-zinc-950 w-full rounded-t-3xl p-5">
+                        <div class="flex justify-between mb-4">
+                            <div class="font-display text-2xl">Save WeGrow</div>
+                            <button onclick="event.target.closest('.fixed').remove()" class="text-3xl px-2">×</button>
+                        </div>
+                        <p class="text-sm text-zinc-400 mb-4">Install like an app — full screen, home screen icon, saves your farm.</p>
+                        <div class="text-sm text-zinc-300">${steps}</div>
+                        <button onclick="event.target.closest('.fixed').remove()" class="mt-5 w-full py-3.5 bg-emerald-600 active:bg-emerald-500 text-white font-semibold rounded-3xl">GOT IT</button>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+
+        window.onload = () => { initGame(); updateInstallButton(); };
         window.WEGROW = { addMoney: n => {gameState.money += n; updateHeader()}, forceRaid: () => gameState.threat = 100, unlockOps: () => { gameState.streetOps.unlocked = true; refreshContracts(false); updateOpsNav(); renderStrainPicker(); } };
     </script>
 </body>
