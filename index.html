@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0f0a">
-    <meta name="description" content="WeGrow by LeafLock — grow, sell, and expand your weed farm">
+    <meta name="description" content="WeGrow by LeafLock v1.3 — grow, sell, expand, and batch-seed your farm">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="WeGrow">
     <title>WeGrow by LeafLock</title>
@@ -144,6 +144,15 @@
             border-color: #4ade80;
             background: #052e16;
         }
+        #room-tabs { max-width: 58%; overflow-x: auto; scrollbar-width: none; }
+        #room-tabs::-webkit-scrollbar { display: none; }
+        .leaderboard-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1f2a1f; font-size: 11px; }
+        .leaderboard-row.gold .rank { background: #854d0e; color: #fef3c7; }
+        .leaderboard-row.you { background: rgba(59,130,246,0.08); border-radius: 8px; }
+        .leaderboard-row .rank { width: 20px; height: 20px; border-radius: 50%; background: #1a2a1a; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; }
+        .account-chip { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 14px; border: 1px solid #1f2a1f; background: #0f140f; font-size: 12px; cursor: pointer; }
+        .account-chip.active { border-color: #166534; background: rgba(22,101,52,0.15); }
+        .account-chip:not(.active):active { background: #1a211a; }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-200 game-bg min-h-screen pb-20 select-none">
@@ -181,6 +190,16 @@
 
     <!-- Street Event Banner -->
     <div id="event-banner" class="hidden px-4 pt-2 event-banner"></div>
+    <div id="offline-welcome" class="hidden mx-4 mt-2 panel border border-emerald-800 rounded-2xl p-3 text-sm">
+        <div class="flex items-start gap-2">
+            <i class="fa-solid fa-clock text-emerald-400 mt-0.5"></i>
+            <div class="flex-1">
+                <div class="font-semibold text-emerald-400 text-xs">Welcome back!</div>
+                <div id="offline-summary" class="text-zinc-400 text-[11px] mt-0.5"></div>
+            </div>
+            <button onclick="document.getElementById('offline-welcome').classList.add('hidden')" class="text-zinc-500">&times;</button>
+        </div>
+    </div>
 
     <!-- Active + Threat Bar -->
     <div class="px-4 pt-2.5 pb-1">
@@ -200,10 +219,21 @@
                 <button id="install-btn" onclick="installApp()" class="hidden text-emerald-400 px-1 touch-target" title="Install app">
                     <i class="fa-solid fa-download text-base"></i>
                 </button>
+                <button onclick="openProfileModal()" class="text-amber-400 px-1 touch-target" title="Scores">
+                    <i class="fa-solid fa-trophy text-base"></i>
+                </button>
                 <button onclick="showHelp()" class="text-emerald-400 px-1 touch-target">
                     <i class="fa-solid fa-question-circle text-base"></i>
                 </button>
             </div>
+        </div>
+        <div class="px-4 pb-1 flex items-center justify-between text-[10px]">
+            <button onclick="(getCurrentSlug() ? openProfileModal() : showAuthScreen())" class="text-sky-400 flex items-center gap-1">
+                <i class="fa-solid fa-user"></i> <span id="player-name-display">Sign in</span>
+            </button>
+            <button onclick="newOperation()" class="text-amber-400/90 flex items-center gap-1">
+                <i class="fa-solid fa-play"></i> New run
+            </button>
         </div>
 
         <!-- Threat -->
@@ -236,21 +266,7 @@
                 </div>
                 
                 <!-- Room Switcher -->
-                <div class="flex bg-zinc-900 border border-zinc-800 rounded-3xl p-0.5 text-xs font-medium">
-                    <button onclick="switchRoom(1)" id="room-tab-1"
-                            class="game-tab active px-3.5 py-1 rounded-3xl flex items-center gap-x-1 bg-emerald-700 text-white">
-                        <span>R1</span>
-                        <span id="room1-count" class="text-[9px] px-1.5 py-px bg-white/20 text-white rounded">2/6</span>
-                    </button>
-                    <button onclick="switchRoom(2)" id="room-tab-2"
-                            class="game-tab px-3.5 py-1 rounded-3xl flex items-center gap-x-1 text-zinc-400">
-                        <span>R2</span>
-                    </button>
-                    <button onclick="switchRoom(3)" id="room-tab-3"
-                            class="game-tab px-3.5 py-1 rounded-3xl flex items-center gap-x-1 text-zinc-400">
-                        <span>R3</span>
-                    </button>
-                </div>
+                <div id="room-tabs" class="flex bg-zinc-900 border border-zinc-800 rounded-3xl p-0.5 text-xs font-medium gap-0.5"></div>
             </div>
 
             <!-- Pots Grid -->
@@ -271,6 +287,11 @@
                     <span>HARVEST READY</span>
                 </button>
             </div>
+            <button id="seed-all-btn" onclick="seedAllPots()"
+                    class="hidden w-full mt-3 flex items-center justify-center gap-x-2 py-3.5 bg-violet-900 active:bg-violet-800 text-violet-200 text-sm font-semibold rounded-3xl disabled:opacity-45 disabled:pointer-events-none">
+                <i class="fa-solid fa-seedling"></i>
+                <span id="seed-all-label">SEED ALL</span>
+            </button>
         </div>
 
         <!-- SECURITY SECTION -->
@@ -353,6 +374,26 @@
         <!-- SHOP SECTION -->
         <div id="section-shop" class="section hidden">
             <div class="space-y-3">
+                <div class="panel rounded-3xl p-4 border-amber-900/30">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-trophy text-amber-400"></i>
+                        <span class="font-semibold">Top 5 — Biggest Bank (this device)</span>
+                    </div>
+                    <div id="leaderboard-list" class="text-xs"></div>
+                    <div class="mt-2 text-[10px] text-zinc-500 grid grid-cols-2 gap-1">
+                        <span>Run peak: <strong id="peak-bank-display" class="text-amber-400">$0</strong></span>
+                        <span>Lifetime: <strong id="lifetime-peak-display" class="text-amber-300">$0</strong></span>
+                    </div>
+                </div>
+                <div class="panel rounded-3xl p-4 border-sky-900/40">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-gift text-sky-400"></i>
+                        <span class="font-semibold">Daily Drop</span>
+                        <span id="daily-streak-badge" class="ml-auto text-[9px] bg-sky-950 text-sky-400 px-2 py-0.5 rounded-full"></span>
+                    </div>
+                    <p id="daily-bonus-status" class="text-xs text-zinc-400 mb-2">Free cash once per day.</p>
+                    <button id="daily-bonus-btn" onclick="claimDailyBonus(true)" class="w-full py-2.5 bg-sky-800 rounded-2xl text-sm font-semibold disabled:opacity-40">Claim Daily Bonus</button>
+                </div>
                 <div onclick="buyNutrients()" class="panel active:border-emerald-700 border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
                     <i class="fa-solid fa-flask text-emerald-400 text-3xl w-9"></i>
                     <div class="flex-1">
@@ -374,12 +415,26 @@
                 <div onclick="unlockNewRoom()" class="panel active:border-emerald-700 border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
                     <i class="fa-solid fa-plus-square text-violet-400 text-3xl w-9"></i>
                     <div class="flex-1">
-                        <div class="font-semibold">Unlock New Room</div>
-                        <div class="text-xs text-zinc-400">Room 2 • 4 starting pots</div>
+                        <div class="font-semibold" id="unlock-room-label">Unlock New Room</div>
+                        <div class="text-xs text-zinc-400" id="unlock-room-desc">6 rooms total</div>
                     </div>
-                    <div class="font-display text-emerald-400 text-xl">$4,500</div>
+                    <div class="font-display text-emerald-400 text-xl" id="unlock-room-cost">$4,500</div>
                 </div>
-                
+                <div onclick="buyUpgrade('carbonFilter')" class="panel border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
+                    <i class="fa-solid fa-wind text-teal-400 text-3xl w-9"></i>
+                    <div class="flex-1"><div class="font-semibold">Carbon Filter</div><div class="text-xs text-zinc-400">15% less heat</div></div>
+                    <div class="font-display text-emerald-400 text-xl">$2,000</div>
+                </div>
+                <div onclick="buyUpgrade('safe')" class="panel border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
+                    <i class="fa-solid fa-vault text-yellow-400 text-3xl w-9"></i>
+                    <div class="flex-1"><div class="font-semibold">Floor Safe</div><div class="text-xs text-zinc-400">50% cash safe in raids</div></div>
+                    <div class="font-display text-emerald-400 text-xl">$2,200</div>
+                </div>
+                <div onclick="buyUpgrade('lookout')" class="panel border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
+                    <i class="fa-solid fa-binoculars text-orange-400 text-3xl w-9"></i>
+                    <div class="flex-1"><div class="font-semibold">Street Lookout</div><div class="text-xs text-zinc-400">Warns before raids</div></div>
+                    <div class="font-display text-emerald-400 text-xl">$1,100</div>
+                </div>
                 <div onclick="buyWaterUpgrade()" class="panel active:border-emerald-700 border border-zinc-800 rounded-3xl p-4 flex gap-x-4 items-center cursor-pointer">
                     <i class="fa-solid fa-tint text-sky-400 text-3xl w-9"></i>
                     <div class="flex-1">
@@ -456,7 +511,46 @@
         </div>
     </nav>
 
-    <!-- Toast Container -->
+    <!-- Auth Screen (first visit / sign out) -->
+    <div id="auth-screen" class="hidden fixed inset-0 bg-zinc-950 z-[90] flex items-end">
+        <div class="bg-zinc-950 w-full rounded-t-3xl p-5 max-h-[88vh] overflow-auto border-t border-emerald-900/40">
+            <div class="font-display text-2xl mb-1">WeGrow</div>
+            <p class="text-xs text-zinc-500 mb-4">Create a username or sign in. Each account has its own farm &amp; save on this device.</p>
+            <input id="auth-name-input" type="text" maxlength="20" placeholder="Username (3–20 chars)"
+                class="w-full mb-3 px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-2xl text-sm outline-none focus:border-emerald-600">
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button onclick="createAccount()" class="py-3 bg-emerald-600 rounded-2xl font-semibold text-sm">Create Account</button>
+                <button onclick="loginAccount()" class="py-3 bg-sky-800 rounded-2xl font-semibold text-sm">Sign In</button>
+            </div>
+            <div id="auth-accounts-section" class="hidden">
+                <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Saved on this device</div>
+                <div id="auth-account-list" class="space-y-2 mb-2"></div>
+            </div>
+            <p class="text-[10px] text-zinc-600 text-center">Top 5 ranks all accounts on this device. No password needed.</p>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="hidden fixed inset-0 bg-black/90 z-[80] flex items-end">
+        <div class="bg-zinc-950 w-full rounded-t-3xl p-5 max-h-[80vh] overflow-auto">
+            <div class="font-display text-xl mb-1">Grower Profile</div>
+            <p class="text-xs text-zinc-500 mb-3">Signed in as <strong id="profile-current-name" class="text-emerald-400">—</strong></p>
+            <div class="text-[10px] text-zinc-500 mb-3 flex justify-between">
+                <span>Lifetime best: <strong id="modal-lifetime-peak" class="text-amber-400">$0</strong></span>
+                <span>Runs: <strong id="modal-runs" class="text-sky-400">0</strong></span>
+            </div>
+            <div id="profile-accounts-section" class="mb-3">
+                <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Switch account</div>
+                <div id="profile-account-list" class="space-y-2 max-h-36 overflow-auto"></div>
+            </div>
+            <button onclick="openCreateAccount()" class="w-full py-2.5 bg-zinc-800 border border-zinc-700 rounded-2xl text-sm font-medium mb-2">+ New Account</button>
+            <button onclick="newOperation()" class="w-full py-3 bg-amber-800 rounded-2xl text-sm font-medium mb-2">New Operation (keep scores)</button>
+            <button onclick="signOut()" class="w-full py-2.5 text-sm text-sky-400 mb-2">Sign Out</button>
+            <button onclick="wipeAllData()" class="w-full py-2 text-xs text-red-400 mb-2">Wipe all accounts &amp; data</button>
+            <button onclick="closeProfileModal()" class="w-full py-2 text-xs text-zinc-500">Close</button>
+        </div>
+    </div>
+
     <div id="toast-container" class="fixed bottom-[78px] left-1/2 -translate-x-1/2 z-[60] flex flex-col gap-y-2 items-center w-full max-w-[92%]"></div>
 
     <script>
@@ -476,6 +570,8 @@
             START_NUTRIENTS: 6,
             START_POTS_PER_ROOM: 4,
             MAX_POTS_PER_ROOM: 14,
+            SEED_ALL_BASE_COOLDOWN_MS: 180000,
+            SEED_ALL_PER_POT_MS: 8000,
             SELL_PRICE_BASE: 13.2,
             RAID_LOSS_PERCENT: 0.24,
             OPS_UNLOCK_SECONDS: 900,
@@ -483,6 +579,29 @@
             CONTRACT_REFRESH_MS: 240000,
             EVENT_MIN_INTERVAL: 110000,
             EVENT_MAX_INTERVAL: 190000,
+            OFFLINE_MAX_HOURS: 8,
+            MAX_ROOMS: 6,
+            PROFILE_KEY: 'wegrow_profile',
+            ACCOUNTS_KEY: 'wegrow_accounts',
+            CURRENT_USER_KEY: 'wegrow_current_user',
+            LEADERBOARD_KEY: 'wegrow_leaderboard',
+            GAME_VERSION: '1.3',
+            VERSION_KEY: 'wegrow_game_version',
+        };
+
+        const ROOM_META = {
+            1: { name: 'Starter', maxPots: 4, unlockCost: 0 },
+            2: { name: 'Back Room', maxPots: 4, unlockCost: 4500 },
+            3: { name: 'Side Lab', maxPots: 4, unlockCost: 9800 },
+            4: { name: 'Greenhouse', maxPots: 5, unlockCost: 18000 },
+            5: { name: 'Warehouse', maxPots: 6, unlockCost: 45000 },
+            6: { name: 'Compound', maxPots: 8, unlockCost: 90000 },
+        };
+
+        const UPGRADE_META = {
+            carbonFilter: { cost: 2000, label: 'Carbon Filter' },
+            safe: { cost: 2200, label: 'Floor Safe' },
+            lookout: { cost: 1100, label: 'Street Lookout' },
         };
 
         const STRAINS = {
@@ -511,15 +630,19 @@
             rooms: {
                 1: { unlocked: true, maxPots: CONFIG.START_POTS_PER_ROOM, pots: [] },
                 2: { unlocked: false, maxPots: 4, pots: [] },
-                3: { unlocked: false, maxPots: 4, pots: [] }
+                3: { unlocked: false, maxPots: 4, pots: [] },
+                4: { unlocked: false, maxPots: 5, pots: [] },
+                5: { unlocked: false, maxPots: 6, pots: [] },
+                6: { unlocked: false, maxPots: 8, pots: [] },
             },
-            upgrades: { autoWater: false },
-            stats: { totalWeedHarvested: 0, totalMoneyEarned: 0, totalSold: 0, raidsSurvived: 0, plantsHarvested: 0 },
+            upgrades: { autoWater: false, carbonFilter: false, safe: false, lookout: false },
+            stats: { totalWeedHarvested: 0, totalMoneyEarned: 0, totalSold: 0, raidsSurvived: 0, plantsHarvested: 0, peakBank: 0, offlineSeconds: 0 },
             lastTick: Date.now(),
             lastActivity: Date.now(),
             sessionStart: Date.now(),
             currentRoom: 1,
             currentSection: 'grow',
+            seedAllCooldownUntil: 0,
             streetOps: {
                 unlocked: false,
                 reputation: 0,
@@ -540,6 +663,383 @@
         let gameInterval = null;
         let sessionInterval = null;
         let pendingPlantIndex = null;
+        let lookoutWarned = false;
+
+        // ==================== ACCOUNTS / SCORES / DAILY ====================
+        function normalizeUsername(name) {
+            return (name || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 20);
+        }
+        function saveKeyForSlug(slug) { return `wegrow_save_${slug}`; }
+        function getAccounts() {
+            try { return JSON.parse(localStorage.getItem(CONFIG.ACCOUNTS_KEY)) || []; } catch(e) { return []; }
+        }
+        function saveAccounts(list) { localStorage.setItem(CONFIG.ACCOUNTS_KEY, JSON.stringify(list)); }
+        function getCurrentSlug() { return localStorage.getItem(CONFIG.CURRENT_USER_KEY) || ''; }
+        function setCurrentSlug(slug) {
+            if (slug) localStorage.setItem(CONFIG.CURRENT_USER_KEY, slug);
+            else localStorage.removeItem(CONFIG.CURRENT_USER_KEY);
+        }
+        function findAccount(slug) { return getAccounts().find(a => a.slug === slug) || null; }
+        function getProfile() {
+            const slug = getCurrentSlug();
+            if (!slug) return { name: '', slug: '', lifetimePeakBank: 0, runs: 0 };
+            return findAccount(slug) || { name: '', slug: '', lifetimePeakBank: 0, runs: 0 };
+        }
+        function saveProfile(p) {
+            if (!p?.slug) return;
+            const list = getAccounts();
+            const idx = list.findIndex(a => a.slug === p.slug);
+            if (idx >= 0) list[idx] = { ...list[idx], ...p };
+            else list.push(p);
+            saveAccounts(list);
+            syncLeaderboard();
+        }
+        function validateUsername(raw) {
+            const name = (raw || '').trim().slice(0, 20);
+            if (name.length < 3) return { ok: false, msg: 'Username needs 3+ characters' };
+            if (!/[a-zA-Z0-9]/.test(name)) return { ok: false, msg: 'Use letters or numbers' };
+            const slug = normalizeUsername(name);
+            if (slug.length < 3) return { ok: false, msg: 'Username too short after cleanup' };
+            return { ok: true, name, slug };
+        }
+        function getLeaderboard() {
+            try { return JSON.parse(localStorage.getItem(CONFIG.LEADERBOARD_KEY)) || []; } catch(e) { return []; }
+        }
+        function syncLeaderboard() {
+            const cur = getCurrentSlug();
+            const board = getAccounts().map(a => ({
+                name: a.name,
+                slug: a.slug,
+                peakBank: Math.max(a.lifetimePeakBank || 0, cur === a.slug ? (gameState.stats.peakBank || 0) : 0),
+                date: a.lastPlayed ? new Date(a.lastPlayed).toLocaleDateString() : '',
+            })).sort((a, b) => b.peakBank - a.peakBank).slice(0, 5);
+            localStorage.setItem(CONFIG.LEADERBOARD_KEY, JSON.stringify(board));
+            renderLeaderboard();
+        }
+        function isYesterday(d) { const x = new Date(d); const y = new Date(); y.setDate(y.getDate() - 1); return x.toDateString() === y.toDateString(); }
+        function trackPeakStats() {
+            const prev = gameState.stats.peakBank || 0;
+            gameState.stats.peakBank = Math.max(prev, gameState.money);
+            const prof = getProfile();
+            if (!prof.slug) return;
+            if (gameState.stats.peakBank > (prof.lifetimePeakBank || 0)) {
+                prof.lifetimePeakBank = gameState.stats.peakBank;
+                prof.lastPlayed = Date.now();
+                saveProfile(prof);
+            } else if (gameState.stats.peakBank > prev) {
+                syncLeaderboard();
+            }
+        }
+        function submitToLeaderboard() { syncLeaderboard(); }
+        function renderLeaderboard() {
+            const el = document.getElementById('leaderboard-list');
+            if (!el) return;
+            const board = getLeaderboard();
+            const mySlug = getCurrentSlug();
+            el.innerHTML = board.length ? board.map((e, i) => `
+                <div class="leaderboard-row ${i === 0 ? 'gold' : ''} ${mySlug && e.slug === mySlug ? 'you' : ''}">
+                    <span class="rank">${i + 1}</span><span class="flex-1 truncate">${e.name}</span>
+                    <span class="text-amber-400 font-mono">$${Math.floor(e.peakBank).toLocaleString()}</span>
+                </div>`).join('') : '<p class="text-zinc-500 py-1">Create an account & grow your bank!</p>';
+            const prof = getProfile();
+            const p = document.getElementById('peak-bank-display');
+            const l = document.getElementById('lifetime-peak-display');
+            const ml = document.getElementById('modal-lifetime-peak');
+            const mr = document.getElementById('modal-runs');
+            const cn = document.getElementById('profile-current-name');
+            if (p) p.textContent = `$${Math.floor(gameState.stats.peakBank || 0).toLocaleString()}`;
+            if (l) l.textContent = `$${Math.floor(prof.lifetimePeakBank || 0).toLocaleString()}`;
+            if (ml) ml.textContent = `$${Math.floor(prof.lifetimePeakBank || 0).toLocaleString()}`;
+            if (mr) mr.textContent = String(prof.runs || 0);
+            if (cn) cn.textContent = prof.name || '—';
+        }
+        function renderAccountLists() {
+            const accounts = getAccounts().sort((a, b) => (b.lastPlayed || b.since || 0) - (a.lastPlayed || a.since || 0));
+            const cur = getCurrentSlug();
+            const chip = (a, onclick) => `
+                <button type="button" onclick="${onclick}" class="account-chip w-full text-left ${a.slug === cur ? 'active' : ''}">
+                    <i class="fa-solid fa-user text-emerald-500/80"></i>
+                    <span class="flex-1 truncate font-medium">${a.name}</span>
+                    <span class="text-amber-400/90 font-mono text-[10px]">$${Math.floor(a.lifetimePeakBank || 0).toLocaleString()}</span>
+                </button>`;
+            const authList = document.getElementById('auth-account-list');
+            const authSec = document.getElementById('auth-accounts-section');
+            const profList = document.getElementById('profile-account-list');
+            if (authList && authSec) {
+                if (accounts.length) {
+                    authSec.classList.remove('hidden');
+                    authList.innerHTML = accounts.map(a => chip(a, `switchAccount('${a.slug}')`)).join('');
+                } else {
+                    authSec.classList.add('hidden');
+                    authList.innerHTML = '';
+                }
+            }
+            if (profList) {
+                profList.innerHTML = accounts.length
+                    ? accounts.map(a => chip(a, `switchAccount('${a.slug}', true)`)).join('')
+                    : '<p class="text-xs text-zinc-500">No other accounts yet.</p>';
+            }
+        }
+        function updatePlayerDisplay() {
+            const el = document.getElementById('player-name-display');
+            const p = getProfile();
+            if (el) el.textContent = p.name || 'Sign in';
+            renderLeaderboard();
+            renderAccountLists();
+        }
+        function showAuthScreen() {
+            const el = document.getElementById('auth-screen');
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+            renderAccountLists();
+            const inp = document.getElementById('auth-name-input');
+            if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 200); }
+        }
+        function hideAuthScreen() {
+            const el = document.getElementById('auth-screen');
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+        }
+        function openProfileModal() {
+            updatePlayerDisplay();
+            document.getElementById('profile-modal').classList.remove('hidden');
+            document.getElementById('profile-modal').classList.add('flex');
+        }
+        function closeProfileModal() {
+            document.getElementById('profile-modal').classList.add('hidden');
+            document.getElementById('profile-modal').classList.remove('flex');
+        }
+        function openCreateAccount() {
+            closeProfileModal();
+            showAuthScreen();
+        }
+        function signOut() {
+            if (!confirm('Sign out? Your farm stays saved on this device.')) return;
+            saveGame();
+            setCurrentSlug('');
+            closeProfileModal();
+            showAuthScreen();
+            showToast('Signed out — pick an account to play', 'info');
+        }
+        function startSessionForAccount(acc, fresh) {
+            setCurrentSlug(acc.slug);
+            acc.lastPlayed = Date.now();
+            saveProfile(acc);
+            hideAuthScreen();
+            if (fresh) {
+                gameState = freshGameState();
+                gameState.rooms[1].pots = Array(CONFIG.START_POTS_PER_ROOM).fill(null);
+                lookoutWarned = false;
+            } else {
+                loadGame();
+            }
+            renderRoomTabs();
+            renderPots();
+            updateHeader();
+            updateDailyBonusUI();
+            claimDailyBonus(false);
+            updatePlayerDisplay();
+            saveGame();
+            showToast(fresh ? `Welcome, ${acc.name}!` : `Signed in as ${acc.name}`);
+        }
+        function createAccount() {
+            const inp = document.getElementById('auth-name-input');
+            const v = validateUsername(inp?.value || '');
+            if (!v.ok) { showToast(v.msg, 'info'); return; }
+            if (findAccount(v.slug)) { showToast('Username taken — sign in or pick another', 'info'); return; }
+            if (getCurrentSlug()) saveGame();
+            const acc = { name: v.name, slug: v.slug, lifetimePeakBank: 0, runs: 0, since: Date.now(), lastPlayed: Date.now() };
+            saveProfile(acc);
+            startSessionForAccount(acc, true);
+        }
+        function loginAccount() {
+            const inp = document.getElementById('auth-name-input');
+            const v = validateUsername(inp?.value || '');
+            if (!v.ok) { showToast(v.msg, 'info'); return; }
+            const acc = findAccount(v.slug);
+            if (!acc) { showToast('No account found — tap Create Account', 'info'); return; }
+            if (getCurrentSlug() && getCurrentSlug() !== v.slug) saveGame();
+            startSessionForAccount(acc, false);
+        }
+        function switchAccount(slug, fromProfile) {
+            if (slug === getCurrentSlug()) {
+                if (fromProfile) closeProfileModal();
+                return;
+            }
+            const acc = findAccount(slug);
+            if (!acc) return;
+            saveGame();
+            if (fromProfile) closeProfileModal();
+            startSessionForAccount(acc, false);
+        }
+        function migrateLegacySave() {
+            if (getAccounts().length) return;
+            const legacyProfile = localStorage.getItem(CONFIG.PROFILE_KEY);
+            const legacySave = localStorage.getItem('wegrow_v1');
+            if (!legacyProfile && !legacySave) return;
+            let name = 'Grower';
+            const acc = { name, slug: 'grower', lifetimePeakBank: 0, runs: 0, since: Date.now(), lastPlayed: Date.now() };
+            try {
+                const p = JSON.parse(legacyProfile);
+                if (p?.name) {
+                    acc.name = p.name.trim().slice(0, 20);
+                    acc.slug = normalizeUsername(acc.name) || 'grower';
+                }
+                acc.lifetimePeakBank = p.lifetimePeakBank || 0;
+                acc.runs = p.runs || 0;
+                acc.lastDailyClaim = p.lastDailyClaim;
+                acc.dailyStreak = p.dailyStreak;
+                acc.since = p.since || Date.now();
+            } catch(e) {}
+            let slug = acc.slug;
+            const list = getAccounts();
+            while (list.some(a => a.slug === slug)) slug = `${acc.slug}_${list.length}`;
+            acc.slug = slug;
+            list.push(acc);
+            saveAccounts(list);
+            setCurrentSlug(slug);
+            if (legacySave) localStorage.setItem(saveKeyForSlug(slug), legacySave);
+            try {
+                const board = JSON.parse(localStorage.getItem(CONFIG.LEADERBOARD_KEY) || '[]');
+                board.forEach(e => {
+                    if (e.name?.toLowerCase() === acc.name.toLowerCase() && e.peakBank > acc.lifetimePeakBank)
+                        acc.lifetimePeakBank = e.peakBank;
+                });
+                saveAccounts(list);
+            } catch(e) {}
+            localStorage.removeItem('wegrow_v1');
+            localStorage.removeItem(CONFIG.PROFILE_KEY);
+            syncLeaderboard();
+        }
+        function claimDailyBonus(manual) {
+            const prof = getProfile();
+            if (!prof.slug) return;
+            const today = new Date().toDateString();
+            if (prof.lastDailyClaim === today) {
+                if (manual) showToast('Already claimed today', 'info');
+                updateDailyBonusUI();
+                return;
+            }
+            const streak = prof.lastDailyClaim && isYesterday(prof.lastDailyClaim) ? (prof.dailyStreak || 0) + 1 : 1;
+            const bonus = Math.min(450, 60 + streak * 20);
+            gameState.money += bonus;
+            prof.lastDailyClaim = today;
+            prof.dailyStreak = streak;
+            saveProfile(prof);
+            showToast(`Daily drop! +$${bonus} (${streak}-day streak)`);
+            updateHeader();
+            updateDailyBonusUI();
+            saveGame();
+        }
+        function updateDailyBonusUI() {
+            const prof = getProfile();
+            const today = new Date().toDateString();
+            const claimed = prof.lastDailyClaim === today;
+            const streak = prof.dailyStreak || 0;
+            const next = Math.min(450, 60 + (claimed ? streak + 1 : (prof.lastDailyClaim && isYesterday(prof.lastDailyClaim) ? streak + 1 : 1)) * 20);
+            const st = document.getElementById('daily-bonus-status');
+            const btn = document.getElementById('daily-bonus-btn');
+            const badge = document.getElementById('daily-streak-badge');
+            if (badge) badge.textContent = streak ? `${streak}-day` : 'new';
+            if (st) st.textContent = claimed ? `Claimed! Tomorrow: up to $${Math.min(450, 60 + (streak + 1) * 20)}` : `Claim $${next} bonus cash`;
+            if (btn) { btn.disabled = claimed; btn.textContent = claimed ? 'Claimed — tomorrow' : `Claim $${next}`; }
+        }
+        function freshGameState() {
+            return JSON.parse(JSON.stringify({
+                money: CONFIG.START_MONEY, inventoryWeed: 0, nutrients: CONFIG.START_NUTRIENTS,
+                doorLevel: 1, threat: 14, lastCheckTime: Date.now(), checkCooldownUntil: 0,
+                rooms: {
+                    1: { unlocked: true, maxPots: CONFIG.START_POTS_PER_ROOM, pots: [] },
+                    2: { unlocked: false, maxPots: 4, pots: [] }, 3: { unlocked: false, maxPots: 4, pots: [] },
+                    4: { unlocked: false, maxPots: 5, pots: [] }, 5: { unlocked: false, maxPots: 6, pots: [] },
+                    6: { unlocked: false, maxPots: 8, pots: [] },
+                },
+                upgrades: { autoWater: false, carbonFilter: false, safe: false, lookout: false },
+                stats: { totalWeedHarvested: 0, totalMoneyEarned: 0, totalSold: 0, raidsSurvived: 0, plantsHarvested: 0, peakBank: 0, offlineSeconds: 0 },
+                lastTick: Date.now(), lastActivity: Date.now(), sessionStart: Date.now(),
+                currentRoom: 1, currentSection: 'grow', seedAllCooldownUntil: 0,
+                streetOps: { unlocked: false, reputation: 0, contractsCompleted: 0, activeContracts: [], lastContractRefresh: 0, nextEventAt: 0, activeEvent: null, unlockedStrains: ['classic'], selectedStrain: 'classic', whaleBonusLeft: 0, coolRunAccum: 0, contractHarvests: 0, contractSales: 0 },
+            }));
+        }
+        function newOperation() {
+            if (!confirm('New operation? Peak bank saves to Top 5, then restart at $280.')) return;
+            trackPeakStats();
+            submitToLeaderboard();
+            const prof = getProfile();
+            prof.runs = (prof.runs || 0) + 1;
+            saveProfile(prof);
+            const so = gameState.streetOps;
+            gameState = freshGameState();
+            gameState.rooms[1].pots = Array(CONFIG.START_POTS_PER_ROOM).fill(null);
+            lookoutWarned = false;
+            closeProfileModal();
+            showToast('Fresh run — beat your high score!');
+            renderRoomTabs();
+            renderPots();
+            updateHeader();
+            saveGame();
+        }
+        function wipeAllData() {
+            if (!confirm('Delete ALL accounts, saves & scores on this device?')) return;
+            getAccounts().forEach(a => localStorage.removeItem(saveKeyForSlug(a.slug)));
+            localStorage.removeItem('wegrow_v1');
+            localStorage.removeItem(CONFIG.PROFILE_KEY);
+            localStorage.removeItem(CONFIG.ACCOUNTS_KEY);
+            localStorage.removeItem(CONFIG.CURRENT_USER_KEY);
+            localStorage.removeItem(CONFIG.LEADERBOARD_KEY);
+            location.reload();
+        }
+        function ensureRooms() {
+            for (let n = 1; n <= CONFIG.MAX_ROOMS; n++) {
+                if (!gameState.rooms[n]) gameState.rooms[n] = { unlocked: n === 1, maxPots: ROOM_META[n].maxPots, pots: [] };
+            }
+        }
+        function getNextLockedRoom() {
+            for (let n = 2; n <= CONFIG.MAX_ROOMS; n++) if (!gameState.rooms[n]?.unlocked) return n;
+            return null;
+        }
+        function updateUnlockRoomUI() {
+            const next = getNextLockedRoom();
+            const label = document.getElementById('unlock-room-label');
+            const desc = document.getElementById('unlock-room-desc');
+            const cost = document.getElementById('unlock-room-cost');
+            if (!next) {
+                if (label) label.textContent = 'All rooms unlocked';
+                if (desc) desc.textContent = 'Empire maxed';
+                if (cost) cost.textContent = 'MAX';
+            } else {
+                if (label) label.textContent = `Unlock: ${ROOM_META[next].name}`;
+                if (desc) desc.textContent = `${ROOM_META[next].maxPots} pots · Room ${next}`;
+                if (cost) cost.textContent = `$${ROOM_META[next].unlockCost.toLocaleString()}`;
+            }
+        }
+        function renderRoomTabs() {
+            const el = document.getElementById('room-tabs');
+            if (!el) return;
+            el.innerHTML = '';
+            for (let n = 1; n <= CONFIG.MAX_ROOMS; n++) {
+                const r = gameState.rooms[n];
+                if (!r) continue;
+                const btn = document.createElement('button');
+                btn.id = `room-tab-${n}`;
+                const active = gameState.currentRoom === n;
+                btn.className = `game-tab shrink-0 px-2.5 py-1 rounded-3xl flex items-center gap-x-1 ${active ? 'bg-emerald-700 text-white' : 'text-zinc-400'}`;
+                const used = r.unlocked ? r.pots.filter(p => p).length : 0;
+                btn.innerHTML = r.unlocked ? `<span>R${n}</span><span class="text-[9px] px-1 py-px ${active ? 'bg-white/20' : 'bg-zinc-800'} rounded">${used}/${r.maxPots}</span>` : `<span>🔒${n}</span>`;
+                btn.onclick = () => switchRoom(n);
+                el.appendChild(btn);
+            }
+        }
+        function countReadyPlants() {
+            let c = 0;
+            Object.values(gameState.rooms).forEach(r => r.unlocked && r.pots?.forEach(p => { if (p?.state === 'ready') c++; }));
+            return c;
+        }
+        function formatDuration(sec) {
+            if (sec < 60) return `${Math.floor(sec)}s`;
+            if (sec < 3600) return `${Math.floor(sec / 60)}m`;
+            return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`;
+        }
 
         // ==================== UTILITIES ====================
         function showToast(msg, type = 'success') {
@@ -585,6 +1085,13 @@
             }
             updateActiveStatus();
             updateOpsNav();
+            trackPeakStats();
+            updatePlayerDisplay();
+            updateDailyBonusUI();
+            updateUnlockRoomUI();
+            document.getElementById('price-bonus').textContent = `+${((gameState.doorLevel - 1) * 1.85).toFixed(1)}/g`;
+            const sellEl = document.getElementById('sell-price');
+            if (sellEl) sellEl.textContent = getSellPrice().toFixed(1);
         }
 
         function getSessionSeconds() {
@@ -888,6 +1395,7 @@
             const el = document.getElementById('session-time');
             if (el) el.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
             checkStreetOpsUnlock();
+            if (gameState.currentSection === 'grow') updateSeedAllButton();
         }
 
         function updateThreatRate() {
@@ -939,17 +1447,14 @@
         function getCurrentRoom() { return gameState.rooms[gameState.currentRoom]; }
 
         function switchRoom(num) {
-            if (!gameState.rooms[num].unlocked) {
-                showToast('Room is locked — unlock in Upgrades tab', 'info');
+            if (!gameState.rooms[num]?.unlocked) {
+                showToast(`${ROOM_META[num]?.name || 'Room'} locked — Shop tab`, 'info');
                 return;
             }
             gameState.currentRoom = num;
-            
-            document.querySelectorAll('[id^="room-tab-"]').forEach(t => t.classList.remove('active', 'bg-emerald-700'));
-            const tab = document.getElementById(`room-tab-${num}`);
-            if (tab) tab.classList.add('active', 'bg-emerald-700');
-            
+            renderRoomTabs();
             renderPots();
+            updateSeedAllButton();
         }
 
         function renderPots() {
@@ -957,12 +1462,6 @@
             container.innerHTML = '';
             const room = getCurrentRoom();
             if (!room) return;
-
-            const badge = document.getElementById(`room${gameState.currentRoom}-count`);
-            if (badge) {
-                const used = room.pots.filter(p => p !== null).length;
-                badge.textContent = `${used}/${room.maxPots}`;
-            }
 
             room.pots.forEach((pot, index) => {
                 const el = document.createElement('div');
@@ -1027,22 +1526,8 @@
                 }
                 container.appendChild(el);
             });
-            updateRoomBadges();
-        }
-
-        function updateRoomBadges() {
-            [1,2,3].forEach(n => {
-                const b = document.getElementById(`room${n}-count`);
-                if (!b) return;
-                const r = gameState.rooms[n];
-                if (!r.unlocked) {
-                    b.textContent = 'LOCK';
-                    b.className = 'text-[9px] px-1.5 bg-zinc-800 text-zinc-400 rounded';
-                } else {
-                    const used = r.pots.filter(p => p).length;
-                    b.textContent = `${used}/${r.maxPots}`;
-                }
-            });
+            renderRoomTabs();
+            updateSeedAllButton();
         }
 
         function plantSeed(idx) {
@@ -1158,6 +1643,7 @@
                 gameState.lastActivity = Date.now();
                 renderPots();
                 updateHeader();
+                updateSeedAllButton();
                 saveGame();
             }
         }
@@ -1172,74 +1658,155 @@
             }
         }
 
+        function isRoomMaxed(room) {
+            return room && room.maxPots >= CONFIG.MAX_POTS_PER_ROOM;
+        }
+        function formatCooldown(sec) {
+            if (sec >= 3600) return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`;
+            if (sec >= 60) return `${Math.floor(sec / 60)}m ${sec % 60}s`;
+            return `${sec}s`;
+        }
+        function updateSeedAllButton() {
+            const btn = document.getElementById('seed-all-btn');
+            const label = document.getElementById('seed-all-label');
+            if (!btn || !label) return;
+            const room = getCurrentRoom();
+            if (!isRoomMaxed(room)) {
+                btn.classList.add('hidden');
+                return;
+            }
+            btn.classList.remove('hidden');
+            const empty = room.pots.filter(p => !p).length;
+            const now = Date.now();
+            const cd = gameState.seedAllCooldownUntil || 0;
+            if (now < cd) {
+                const sec = Math.ceil((cd - now) / 1000);
+                btn.disabled = true;
+                label.textContent = `SEED ALL — ${formatCooldown(sec)}`;
+                return;
+            }
+            const strainId = gameState.streetOps.unlocked ? gameState.streetOps.selectedStrain : 'classic';
+            const strain = getStrain(strainId);
+            const cost = empty * (strain.seedCost || 0);
+            btn.disabled = empty === 0;
+            if (empty === 0) {
+                label.textContent = 'SEED ALL — room full';
+            } else if (cost > 0) {
+                label.textContent = `SEED ALL — ${empty} pots · $${cost}`;
+            } else {
+                label.textContent = `SEED ALL — ${empty} empty pots`;
+            }
+        }
+        function seedAllPots() {
+            const room = getCurrentRoom();
+            if (!isRoomMaxed(room)) {
+                showToast('Max room to 14 pots first', 'info');
+                return;
+            }
+            const now = Date.now();
+            const cd = gameState.seedAllCooldownUntil || 0;
+            if (now < cd) {
+                showToast(`Batch planting — ${formatCooldown(Math.ceil((cd - now) / 1000))} left`, 'info');
+                return;
+            }
+            const strainId = gameState.streetOps.unlocked ? gameState.streetOps.selectedStrain : 'classic';
+            const strain = getStrain(strainId);
+            const emptyIdx = room.pots.map((p, i) => (p ? null : i)).filter(i => i !== null);
+            if (!emptyIdx.length) {
+                showToast('Room full', 'info');
+                updateSeedAllButton();
+                return;
+            }
+            const totalCost = emptyIdx.length * (strain.seedCost || 0);
+            if (gameState.money < totalCost) {
+                showToast(`Need $${totalCost} for ${emptyIdx.length} ${strain.name} seeds`, 'info');
+                return;
+            }
+            if (totalCost > 0) gameState.money -= totalCost;
+            emptyIdx.forEach(i => { room.pots[i] = createNewPlant(strainId); });
+            const cooldown = CONFIG.SEED_ALL_BASE_COOLDOWN_MS + emptyIdx.length * CONFIG.SEED_ALL_PER_POT_MS;
+            gameState.seedAllCooldownUntil = now + cooldown;
+            showToast(`Seeded ${emptyIdx.length} ${strain.emoji} — ready again in ${formatCooldown(Math.ceil(cooldown / 1000))}`);
+            gameState.lastActivity = Date.now();
+            renderPots();
+            updateHeader();
+            updateSeedAllButton();
+            saveGame();
+        }
+
         // ==================== GAME LOOP ====================
+        function processTimeDelta(delta, isLiveTick) {
+            if (delta <= 0) return;
+            const now = Date.now();
+            const isActive = isLiveTick && (now - gameState.lastActivity) < 40000;
+            const mult = isActive ? CONFIG.ACTIVE_MULTIPLIER : CONFIG.IDLE_MULTIPLIER;
+            const growing = countGrowingPlants();
+            let gain = CONFIG.THREAT_BASE_GAIN + (growing * CONFIG.THREAT_PLANT_MULTIPLIER) + (gameState.inventoryWeed * CONFIG.THREAT_WEED_MULTIPLIER);
+            gain *= (1 - (gameState.doorLevel - 1) * 0.12);
+            if (gameState.upgrades.carbonFilter) gain *= 0.85;
+            gameState.threat = Math.min(100, Math.max(0, gameState.threat + gain * delta));
+            if (gameState.upgrades.lookout && gameState.threat >= 78 && gameState.threat < 100 && !lookoutWarned && isLiveTick) {
+                lookoutWarned = true;
+                showToast('Lookout: heat rising — secure the door!', 'danger');
+            }
+            if (gameState.threat < 55) lookoutWarned = false;
+            Object.values(gameState.rooms).forEach(room => {
+                if (!room.unlocked || !room.pots) return;
+                room.pots.forEach(pot => {
+                    if (!pot || pot.state !== 'growing') return;
+                    const dep = isActive ? CONFIG.WATER_DEPLETION_ACTIVE : CONFIG.WATER_DEPLETION_RATE;
+                    if (!gameState.upgrades.autoWater) pot.waterLevel = Math.max(0, pot.waterLevel - dep * delta);
+                    else pot.waterLevel = Math.max(pot.waterLevel, 62);
+                    if (pot.waterLevel > 13) {
+                        const wF = pot.waterLevel > 32 ? 1 : 0.38;
+                        const nF = pot.nutrientApplied ? 1.16 : 1;
+                        const sF = getStrain(pot.strain || 'classic').growthMult;
+                        pot.growthProgress = Math.min(100, pot.growthProgress + (delta * mult * wF * nF * sF) / (CONFIG.BASE_GROWTH_SECONDS / 100));
+                        if (pot.growthProgress >= 100) { pot.state = 'ready'; pot.growthProgress = 100; }
+                    }
+                });
+            });
+            if (gameState.threat >= 100 && isLiveTick) triggerRaid();
+            if (isLiveTick) {
+                checkStreetOpsUnlock();
+                tickContracts(delta);
+                renderEventBanner();
+                if (gameState.streetOps.unlocked && !gameState.streetOps.activeEvent && now >= gameState.streetOps.nextEventAt) spawnStreetEvent();
+            }
+        }
+        function simulateOfflineProgress() {
+            const now = Date.now();
+            const elapsed = Math.min((now - gameState.lastTick) / 1000, CONFIG.OFFLINE_MAX_HOURS * 3600);
+            if (elapsed < 8) return;
+            const before = countReadyPlants();
+            processTimeDelta(elapsed, false);
+            gameState.lastTick = now;
+            gameState.stats.offlineSeconds = (gameState.stats.offlineSeconds || 0) + elapsed;
+            const after = countReadyPlants();
+            const summary = [`${formatDuration(elapsed)} away`];
+            if (after > before) summary.push(`${after - before} plant(s) ready`);
+            document.getElementById('offline-summary').textContent = summary.join(' · ');
+            document.getElementById('offline-welcome').classList.remove('hidden');
+            if (gameState.threat >= 100) triggerRaid();
+            saveGame();
+        }
         function gameTick() {
             const now = Date.now();
             const delta = (now - gameState.lastTick) / 1000;
             gameState.lastTick = now;
             if (delta <= 0 || delta > 7) return;
-
-            const isActive = (now - gameState.lastActivity) < 40000;
-            const mult = isActive ? CONFIG.ACTIVE_MULTIPLIER : CONFIG.IDLE_MULTIPLIER;
-
-            // Threat calculation
-            const growing = countGrowingPlants();
-            let gain = CONFIG.THREAT_BASE_GAIN + (growing * CONFIG.THREAT_PLANT_MULTIPLIER) + (gameState.inventoryWeed * CONFIG.THREAT_WEED_MULTIPLIER);
-            gain *= (1 - (gameState.doorLevel - 1) * 0.12);
-            gameState.threat = Math.min(100, Math.max(0, gameState.threat + gain * delta));
-
-            // Plant growth
-            Object.values(gameState.rooms).forEach(room => {
-                if (!room.unlocked || !room.pots) return;
-                room.pots.forEach(pot => {
-                    if (!pot || pot.state !== 'growing') return;
-
-                    const dep = isActive ? CONFIG.WATER_DEPLETION_ACTIVE : CONFIG.WATER_DEPLETION_RATE;
-                    if (!gameState.upgrades.autoWater) {
-                        pot.waterLevel = Math.max(0, pot.waterLevel - dep * delta);
-                    } else {
-                        pot.waterLevel = Math.max(pot.waterLevel, 62);
-                    }
-
-                    if (pot.waterLevel > 13) {
-                        const wF = pot.waterLevel > 32 ? 1 : 0.38;
-                        const nF = pot.nutrientApplied ? 1.16 : 1;
-                        const sF = getStrain(pot.strain || 'classic').growthMult;
-                        const growth = (delta * mult * wF * nF * sF) / (CONFIG.BASE_GROWTH_SECONDS / 100);
-                        pot.growthProgress = Math.min(100, pot.growthProgress + growth);
-
-                        if (pot.growthProgress >= 100) {
-                            pot.state = 'ready';
-                            pot.growthProgress = 100;
-                        }
-                    }
-                });
-            });
-
-            if (gameState.threat >= 100) triggerRaid();
-
-            checkStreetOpsUnlock();
-            tickContracts(delta);
-            renderEventBanner();
-            if (gameState.streetOps.unlocked && !gameState.streetOps.activeEvent && now >= gameState.streetOps.nextEventAt) {
-                spawnStreetEvent();
-            }
-
+            processTimeDelta(delta, true);
             updateHeader();
             updateThreatRate();
-
-            if (Math.floor(now / 1600) !== Math.floor((now - delta * 1000) / 1600)) {
-                renderPots();
-            }
-            if (gameState.currentSection === 'ops' && Math.floor(now / 2000) !== Math.floor((now - delta * 1000) / 2000)) {
-                renderContracts();
-            }
+            if (Math.floor(now / 1600) !== Math.floor((now - delta * 1000) / 1600)) renderPots();
+            if (gameState.currentSection === 'ops' && Math.floor(now / 2000) !== Math.floor((now - delta * 1000) / 2000)) renderContracts();
             if (Math.floor(now / 26000) > Math.floor((now - delta * 1000) / 26000)) saveGame();
         }
 
         function triggerRaid() {
             const lostW = Math.floor(gameState.inventoryWeed * CONFIG.RAID_LOSS_PERCENT);
-            const lostM = Math.floor(gameState.money * 0.13);
+            let lostM = Math.floor(gameState.money * 0.13);
+            if (gameState.upgrades.safe) lostM = Math.floor(lostM * 0.5);
             gameState.inventoryWeed = Math.max(0, gameState.inventoryWeed - lostW);
             gameState.money = Math.max(0, gameState.money - lostM);
             gameState.threat = 40 + Math.random() * 11;
@@ -1338,27 +1905,35 @@
             showToast('Room expanded +2 pots');
             updateHeader();
             renderPots();
+            updateSeedAllButton();
             saveGame();
         }
 
         function unlockNewRoom() {
-            let next = null;
-            for (let i = 2; i <= 3; i++) if (!gameState.rooms[i].unlocked) { next = i; break; }
-            if (!next) { showToast('All rooms unlocked'); return; }
-
-            const cost = next === 2 ? 4500 : 9800;
-            if (gameState.money < cost) { showToast(`Need $${cost}`, 'info'); return; }
-
+            const next = getNextLockedRoom();
+            if (!next) { showToast('All 6 rooms unlocked!'); return; }
+            const cost = ROOM_META[next].unlockCost;
+            if (gameState.money < cost) { showToast(`Need $${cost.toLocaleString()}`, 'info'); return; }
             gameState.money -= cost;
             gameState.rooms[next].unlocked = true;
             gameState.rooms[next].pots = Array(gameState.rooms[next].maxPots).fill(null);
-            showToast(`Room ${next} unlocked!`);
+            showToast(`Unlocked ${ROOM_META[next].name}!`);
             setTimeout(() => switchRoom(next), 280);
             updateHeader();
-            updateRoomBadges();
+            renderRoomTabs();
             saveGame();
         }
-
+        function buyUpgrade(key) {
+            const meta = UPGRADE_META[key];
+            if (!meta) return;
+            if (gameState.upgrades[key]) { showToast(`${meta.label} owned`); return; }
+            if (gameState.money < meta.cost) { showToast(`Need $${meta.cost}`, 'info'); return; }
+            gameState.money -= meta.cost;
+            gameState.upgrades[key] = true;
+            showToast(`${meta.label} installed!`);
+            updateHeader();
+            saveGame();
+        }
         function buyWaterUpgrade() {
             if (gameState.upgrades.autoWater) { showToast('Already installed'); return; }
             if (gameState.money < 1250) { showToast('Need $1,250', 'info'); return; }
@@ -1378,25 +1953,31 @@
             document.getElementById(`nav-${sec}`).classList.add('active', 'text-emerald-400');
 
             gameState.currentSection = sec;
-            if (sec === 'grow') setTimeout(renderPots, 40);
+            if (sec === 'grow') { setTimeout(renderPots, 40); setTimeout(updateSeedAllButton, 45); }
             if (sec === 'ops') { renderStrainPicker(); renderContracts(); }
         }
 
         // ==================== SAVE / LOAD ====================
         function saveGame() {
-            try { localStorage.setItem('wegrow_v1', JSON.stringify(gameState)); } catch(e){}
+            const slug = getCurrentSlug();
+            if (!slug) return;
+            try { localStorage.setItem(saveKeyForSlug(slug), JSON.stringify(gameState)); } catch(e){}
         }
 
         function loadGame() {
+            const slug = getCurrentSlug();
+            if (!slug) return;
             try {
-                const saved = localStorage.getItem('wegrow_v1') || localStorage.getItem('leaflock_v2') || localStorage.getItem('oneStateMobile_v2');
+                const saved = localStorage.getItem(saveKeyForSlug(slug)) || localStorage.getItem('wegrow_v1') || localStorage.getItem('leaflock_v2') || localStorage.getItem('oneStateMobile_v2');
                 if (saved) {
                     const p = JSON.parse(saved);
-                    gameState = { ...gameState, ...p };
+                    gameState = { ...gameState, ...p, upgrades: { ...gameState.upgrades, ...(p.upgrades || {}) }, stats: { ...gameState.stats, ...(p.stats || {}) } };
                     if (!gameState.streetOps) gameState.streetOps = { unlocked: false, reputation: 0, contractsCompleted: 0, activeContracts: [], lastContractRefresh: 0, nextEventAt: 0, activeEvent: null, unlockedStrains: ['classic'], selectedStrain: 'classic', whaleBonusLeft: 0, coolRunAccum: 0, contractHarvests: 0, contractSales: 0 };
+                    ensureRooms();
                     Object.keys(gameState.rooms).forEach(k => {
                         const r = gameState.rooms[k];
                         if (r.unlocked && (!r.pots || r.pots.length === 0)) r.pots = Array(r.maxPots || 4).fill(null);
+                        while (r.unlocked && r.pots.length < r.maxPots) r.pots.push(null);
                     });
                 } else {
                     initRoomPots(1);
@@ -1405,30 +1986,40 @@
             if (!gameState.rooms[gameState.currentRoom]?.unlocked) gameState.currentRoom = 1;
         }
 
-        function resetGame() {
-            if (!confirm('Reset everything?')) return;
-            localStorage.removeItem('wegrow_v1');
-            localStorage.removeItem('leaflock_v2');
-            localStorage.removeItem('oneStateMobile_v2');
-            location.reload();
+        // ==================== INIT ====================
+        function checkGameUpdate() {
+            const prev = localStorage.getItem(CONFIG.VERSION_KEY);
+            if (prev === CONFIG.GAME_VERSION) return;
+            localStorage.setItem(CONFIG.VERSION_KEY, CONFIG.GAME_VERSION);
+            if (!prev) return;
+            const notes = {
+                '1.3': 'Seed All — max a room to 14 pots, batch plant with cooldown',
+                '1.2': 'Separate accounts, Top 5, offline growth, daily drop, rooms 4–6',
+            };
+            setTimeout(() => showToast(`WeGrow v${CONFIG.GAME_VERSION} — ${notes[CONFIG.GAME_VERSION] || 'updated!'}`, 'info'), 2200);
         }
 
-        // ==================== INIT ====================
         function initGame() {
-            loadGame();
-            if (!gameState.rooms[1].pots || gameState.rooms[1].pots.length === 0) initRoomPots(1);
-
-            // Default tab
-            const tab1 = document.getElementById('room-tab-1');
-            if (tab1) tab1.classList.add('active', 'bg-emerald-700');
+            migrateLegacySave();
+            checkGameUpdate();
+            if (!getCurrentSlug()) {
+                showAuthScreen();
+            } else {
+                loadGame();
+                if (!gameState.rooms[1].pots || gameState.rooms[1].pots.length === 0) initRoomPots(1);
+                simulateOfflineProgress();
+                updatePlayerDisplay();
+                claimDailyBonus(false);
+            }
 
             document.getElementById('section-grow').classList.remove('hidden');
             document.getElementById('nav-grow').classList.add('active', 'text-emerald-400');
 
+            renderRoomTabs();
             renderPots();
+            renderLeaderboard();
             updateHeader();
             updateThreatRate();
-            updateRoomBadges();
 
             // Game loop
             if (gameInterval) clearInterval(gameInterval);
@@ -1472,7 +2063,7 @@
 
             updateHeader();
             showSection('grow');
-            console.log('%c[WeGrow by LeafLock] Ready', 'color:#4ade80');
+            console.log(`%c[WeGrow by LeafLock] v${CONFIG.GAME_VERSION} Ready`, 'color:#4ade80');
         }
 
         function showHelp() {
@@ -1488,12 +2079,15 @@
                             <div><strong class="text-emerald-400">SPEED:</strong> Keep tapping/playing = <strong>6× faster</strong> growth.</div>
                             <div><strong class="text-red-400">SECURITY:</strong> Tap "Check Door" regularly. High heat = raid.</div>
                             <div><strong class="text-amber-400">SELL:</strong> Sell at front door. Higher door level = better price.</div>
-                            <div><strong class="text-emerald-400">EXPAND:</strong> Use money to buy pots and unlock rooms.</div>
+                            <div><strong class="text-emerald-400">EXPAND:</strong> Use money to buy pots and unlock rooms. Max a room to 14 pots → <strong>Seed All</strong> batch plant (3–5 min cooldown).</div>
                             <div><strong class="text-violet-400">STREET OPS:</strong> Unlocks after ~15 min — contracts, events &amp; premium strains.</div>
+                            <div><strong class="text-sky-400">ACCOUNTS:</strong> Create a username — each account has its own save. Top 5 ranks everyone on this device.</div>
+                            <div><strong class="text-emerald-400">OFFLINE:</strong> Plants grow up to 8 hours while closed.</div>
+                            <div><strong class="text-sky-400">DAILY DROP:</strong> Free cash in Shop — streak = bigger bonus.</div>
                             <div class="pt-2 text-xs text-zinc-400 border-t border-zinc-800">
                                 <strong class="text-emerald-400">INSTALL:</strong> Tap the <i class="fa-solid fa-download"></i> button to save WeGrow to your home screen — works offline after first load.
                             </div>
-                            <div class="text-xs text-zinc-500">WeGrow by LeafLock — grow your empire on mobile &amp; desktop.</div>
+                            <div class="text-xs text-zinc-500">WeGrow by LeafLock v1.3 — grow your empire on mobile &amp; desktop.</div>
                         </div>
                         <button onclick="event.target.closest('.fixed').remove()" class="mt-5 w-full py-3.5 bg-emerald-600 active:bg-emerald-500 text-white font-semibold rounded-3xl">LET'S GROW</button>
                     </div>
